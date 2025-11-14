@@ -633,11 +633,11 @@
       "details": "Create a function to analyze all orders and generate insights based on common patterns (e.g., exclusion grounds, expert types). Implement GET /api/insights in routes.py using the Insight model from API PRD. Cache results if needed for performance. Ensure insights include type, description, evidence (order IDs), confidence, and strength.",
       "prdReferences": {
         "backend": [
-          "lines 689-725 (Implied in analysis synthesis)",
-          "api-contract": [
-            "lines 262-270 (Insight model)",
-            "lines 633-688 (GET /api/insights endpoint)"
-          ]
+          "lines 689-725 (Implied in analysis synthesis)"
+        ],
+        "api-contract": [
+          "lines 262-270 (Insight model)",
+          "lines 633-688 (GET /api/insights endpoint)"
         ]
       },
       "priority": "high",
@@ -721,7 +721,6 @@
     "updated": "2025-11-14T17:00:00.000Z",
     "description": "Tasks for master context - Updated with PRD line references"
   }
-}
   },
   "frontend": {
     "tasks": [
