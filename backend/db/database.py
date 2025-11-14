@@ -10,6 +10,7 @@ SQLite database with:
 import sqlite3
 import json
 import logging
+import struct
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from contextlib import contextmanager
@@ -225,8 +226,8 @@ class DatabaseService:
         with self.get_connection() as conn:
             cursor = conn.cursor()
 
-            # Convert to bytes for sqlite-vec
-            embedding_bytes = bytes(embedding)
+            # Serialize embedding as little-endian float32 bytes
+            embedding_bytes = struct.pack(f'{len(embedding)}f', *embedding)
 
             cursor.execute("""
                 INSERT INTO order_embeddings (order_id, embedding)
@@ -271,7 +272,8 @@ class DatabaseService:
                 if len(embedding) != 384:
                     raise ValueError(f"Embedding must be 384-dimensional, got {len(embedding)}")
 
-                embedding_bytes = bytes(embedding)
+                # Serialize embedding as little-endian float32 bytes
+                embedding_bytes = struct.pack(f'{len(embedding)}f', *embedding)
                 cursor.execute("""
                     INSERT INTO chunk_embeddings (chunk_id, embedding)
                     VALUES (?, ?)
@@ -326,7 +328,8 @@ class DatabaseService:
             List of order dictionaries
         """
         with self.get_connection() as conn:
-            cursor = cursor.execute("""
+            cursor = conn.cursor()
+            cursor.execute("""
                 SELECT id, filename, metadata_json, created_at
                 FROM orders
                 ORDER BY created_at DESC

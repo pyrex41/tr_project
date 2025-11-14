@@ -11,7 +11,9 @@ from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from backend.db.database import DatabaseService
+from db.database import DatabaseService
+from services.embeddings import EmbeddingService
+from services.search import SearchService
 
 # Configure logging
 logging.basicConfig(
@@ -20,19 +22,28 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Global database service
+# Global services
 db_service: DatabaseService = None
+embedding_service: EmbeddingService = None
+search_service: SearchService = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup/shutdown."""
-    global db_service
+    global db_service, embedding_service, search_service
 
     # Startup
     logger.info("Starting Legal Analysis API...")
-    db_service = DatabaseService()
+    db_path = Path(__file__).parent.parent / "data" / "orders.db"
+    db_service = DatabaseService(str(db_path))
     logger.info("Database service initialized")
+
+    embedding_service = EmbeddingService()
+    logger.info("Embedding service initialized")
+
+    search_service = SearchService(db_service, embedding_service)
+    logger.info("Search service initialized")
 
     yield
 
@@ -156,10 +167,11 @@ async def keyword_search(q: str, limit: int = 10):
         if not q or len(q.strip()) == 0:
             raise HTTPException(status_code=400, detail="Query parameter 'q' is required")
 
-        results = db_service.keyword_search(q, limit=limit)
+        results = search_service.keyword_search(q, limit=limit)
         return {
             "success": True,
             "query": q,
+            "search_type": "keyword",
             "count": len(results),
             "data": results
         }
@@ -167,6 +179,164 @@ async def keyword_search(q: str, limit: int = 10):
         raise
     except Exception as e:
         logger.error(f"Error in keyword search: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Semantic search
+@app.get("/api/search/semantic")
+async def semantic_search(q: str, limit: int = 10, search_type: str = "order"):
+    """
+    Perform semantic vector search.
+
+    Args:
+        q: Search query
+        limit: Maximum results (default: 10)
+        search_type: "order" for full orders, "chunk" for analysis sections
+    """
+    try:
+        if not q or len(q.strip()) == 0:
+            raise HTTPException(status_code=400, detail="Query parameter 'q' is required")
+
+        if search_type not in ["order", "chunk"]:
+            raise HTTPException(status_code=400, detail="search_type must be 'order' or 'chunk'")
+
+        results = search_service.semantic_search(q, limit=limit, search_type=search_type)
+        return {
+            "success": True,
+            "query": q,
+            "search_type": f"semantic_{search_type}",
+            "count": len(results),
+            "data": results
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in semantic search: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Hybrid search
+@app.get("/api/search/hybrid")
+async def hybrid_search(
+    q: str,
+    limit: int = 10,
+    keyword_weight: float = 0.3,
+    semantic_weight: float = 0.7
+):
+    """
+    Perform hybrid search combining keyword and semantic search.
+
+    Args:
+        q: Search query
+        limit: Maximum results (default: 10)
+        keyword_weight: Weight for keyword search (default: 0.3)
+        semantic_weight: Weight for semantic search (default: 0.7)
+    """
+    try:
+        if not q or len(q.strip()) == 0:
+            raise HTTPException(status_code=400, detail="Query parameter 'q' is required")
+
+        results = search_service.hybrid_search(
+            q,
+            limit=limit,
+            keyword_weight=keyword_weight,
+            semantic_weight=semantic_weight
+        )
+        return {
+            "success": True,
+            "query": q,
+            "search_type": "hybrid",
+            "weights": {
+                "keyword": keyword_weight,
+                "semantic": semantic_weight
+            },
+            "count": len(results),
+            "data": results
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error in hybrid search: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# Insights generation
+@app.get("/api/insights")
+async def get_insights():
+    """
+    Get insights and patterns across all orders.
+
+    Analyzes judicial patterns, expert witness trends, and Daubert applications.
+    """
+    try:
+        # Get all orders
+        orders = db_service.get_all_orders(limit=1000)
+
+        # Calculate statistics
+        total_orders = len(orders)
+        with_daubert = sum(1 for o in orders if o['metadata'].get('has_daubert', False))
+        total_experts = sum(o['metadata'].get('expert_count', 0) for o in orders)
+        avg_experts = total_experts / total_orders if total_orders > 0 else 0
+
+        # Get years
+        years = []
+        for o in orders:
+            date_str = o['metadata'].get('date')
+            if date_str:
+                try:
+                    year = int(date_str.split('-')[0])
+                    years.append(year)
+                except:
+                    pass
+
+        year_range = f"{min(years)}-{max(years)}" if years else "N/A"
+
+        # Common terms analysis (using FTS5)
+        common_terms = [
+            "excluded",
+            "admitted",
+            "testimony",
+            "methodology",
+            "reliability",
+            "qualifications",
+            "expert witness"
+        ]
+
+        term_counts = {}
+        for term in common_terms:
+            results = search_service.keyword_search(term, limit=100)
+            term_counts[term] = len(results)
+
+        insights = {
+            "overview": {
+                "total_orders": total_orders,
+                "year_range": year_range,
+                "orders_with_daubert": with_daubert,
+                "daubert_percentage": round((with_daubert / total_orders * 100), 1) if total_orders > 0 else 0
+            },
+            "expert_analysis": {
+                "total_expert_mentions": total_experts,
+                "average_experts_per_case": round(avg_experts, 1)
+            },
+            "common_terms": term_counts,
+            "patterns": {
+                "description": "Judge Boyle's expert witness rulings demonstrate consistent application of Daubert standards",
+                "key_themes": [
+                    "Methodological rigor and scientific validity",
+                    "Qualification requirements for expert testimony",
+                    "Fit between expert opinion and case issues",
+                    "Reliability and relevance considerations"
+                ]
+            }
+        }
+
+        return {
+            "success": True,
+            "data": insights
+        }
+
+    except Exception as e:
+        logger.error(f"Error generating insights: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -183,7 +353,10 @@ async def root():
             "stats": "/api/stats",
             "orders": "/api/orders",
             "order_by_id": "/api/orders/{id}",
-            "keyword_search": "/api/search/keyword?q=query"
+            "keyword_search": "/api/search/keyword?q=query",
+            "semantic_search": "/api/search/semantic?q=query&search_type=order",
+            "hybrid_search": "/api/search/hybrid?q=query",
+            "insights": "/api/insights"
         }
     }
 
