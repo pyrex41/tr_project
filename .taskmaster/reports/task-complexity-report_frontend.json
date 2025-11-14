@@ -1,0 +1,93 @@
+{
+	"meta": {
+		"generatedAt": "2025-11-14T15:51:50.046Z",
+		"tasksAnalyzed": 10,
+		"totalTasks": 10,
+		"analysisCount": 10,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": false
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Set up Elm project with Vite and dependencies",
+			"complexityScore": 4,
+			"recommendedSubtasks": 1,
+			"expansionPrompt": "Break down the project setup into subtasks such as initializing npm, installing Vite and Elm dependencies, configuring elm.json, setting up the src directory structure, and configuring vite.config.js and package.json scripts.",
+			"reasoning": "This task involves standard project initialization and configuration steps, with moderate effort in ensuring all dependencies and configurations match the PRD specifications. Technical challenges include setting up the Vite plugin correctly and structuring directories, but it's largely procedural with low risk of errors if following guides. Testing is straightforward via npm commands. Dependencies are none, making it a good starting point."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Define shared types and models in Types.elm",
+			"complexityScore": 6,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "No expansion needed as this is a focused task on defining types and decoders in a single file.",
+			"reasoning": "Defining Elm types and decoders requires careful alignment with PRD specifications for data structures, which can be complex due to the need for accurate JSON parsing and type safety. Implementation effort is moderate, involving multiple types and decoders, with testing focused on compilation and sample decoding. It depends on task 1, and challenges include ensuring completeness across API responses and UI states."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Implement API module for backend integration",
+			"complexityScore": 7,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Expand into subtasks for implementing individual API functions (e.g., getStats, getInsights, search functions, getOrderDetail) and adding error handling and decoders.",
+			"reasoning": "This task involves HTTP requests, error handling, and integration with decoders from Types.elm, presenting technical challenges in asynchronous operations and data parsing. Effort is higher due to multiple functions and need for robust error states. Testing requires mocking or a backend, and it depends on task 2, increasing complexity through dependencies."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Create reusable UI components",
+			"complexityScore": 7,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break into subtasks for each major component: Layout, SearchBar, OrderCard, StatCard, Chart (with SVG implementation), QuoteCard, and Modal, including styling and event handling.",
+			"reasoning": "Developing multiple reusable components with Tailwind CSS and Elm architecture requires moderate effort for each, with challenges in creating custom SVG charts without libraries and ensuring modularity. Testing involves rendering and interactivity checks. Dependencies on tasks 1 and 2 add some complexity, and the variety of components justifies subtasks."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Implement routing and main application structure",
+			"complexityScore": 8,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "No expansion needed as routing and main structure can be implemented cohesively in Main.elm.",
+			"reasoning": "Setting up Elm routing with union types, URL parsing, and integration of Layout component is technically challenging due to state management across pages and proper navigation logic. High effort in implementing init, update, and view functions. Testing involves manual navigation. Depends on tasks 2 and 4, and it's a core architectural task."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Implement Dashboard page with stats and insights",
+			"complexityScore": 7,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Expand into subtasks for fetching and rendering stats/insights, implementing charts, and handling search functionality with navigation.",
+			"reasoning": "Building a full page with API integration, rendering multiple elements (cards, charts), and search handling requires solid Elm knowledge. Challenges include data visualization and event-driven navigation. Testing covers data loading and UI interactions. Depends on tasks 3, 4, 5, making it interdependent."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Implement Search page with keyword and semantic search",
+			"complexityScore": 7,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Break into subtasks for implementing search logic (keyword vs. semantic), rendering results and filters, and handling loading/error states.",
+			"reasoning": "Similar to Dashboard, this involves API calls, state management for queries and filters, and rendering dynamic results. Technical challenges in search modes and filter updates. Testing requires various query scenarios. Depends on tasks 3, 4, 5."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Implement Order Detail page with tabs and analysis",
+			"complexityScore": 7,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Expand into subtasks for implementing tab switching logic and rendering content for each tab (overview, analysis, full text, citations, quotes).",
+			"reasoning": "Managing tabbed interface with different content types and API fetching adds complexity in state handling and rendering. Challenges in displaying varied data like quotes and analysis. Testing includes tab navigation and data loading. Depends on tasks 3, 4, 5."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "Apply styling and ensure responsive design",
+			"complexityScore": 6,
+			"recommendedSubtasks": 1,
+			"expansionPrompt": "Break into subtasks for applying Tailwind styles to components/pages and ensuring responsive layouts across devices.",
+			"reasoning": "Integrating styling across the app and ensuring responsiveness involves iterative design work, with challenges in matching PRD's design system and accessibility. Effort is moderate but spread out. Testing on multiple devices. Depends on multiple tasks, but focuses on polish."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Add testing, performance optimization, and final polish",
+			"complexityScore": 8,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Expand into subtasks for setting up and writing unit tests, implementing performance optimizations (caching, debouncing), and adding final polish touches.",
+			"reasoning": "This encompasses testing setup, performance tuning (e.g., lazy loading, bundle optimization), and end-to-end checks, which are technically demanding and require broad knowledge. High effort due to dependencies on all prior tasks and the need to meet strict metrics like load times. Testing is comprehensive."
+		}
+	]
+}

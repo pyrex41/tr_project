@@ -1,0 +1,93 @@
+{
+	"meta": {
+		"generatedAt": "2025-11-14T15:49:32.204Z",
+		"tasksAnalyzed": 10,
+		"totalTasks": 10,
+		"analysisCount": 10,
+		"thresholdScore": 5,
+		"projectName": "Taskmaster",
+		"usedResearch": false
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Set up project structure and dependencies",
+			"complexityScore": 3,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "",
+			"reasoning": "This task involves basic project setup including directory creation, dependency installation, and environment configuration. It has low technical challenges as it relies on standard Python tools like pip and virtual environments, with minimal dependencies and straightforward testing via directory checks and imports. No expansion needed as it's a single, self-contained setup step."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Implement Markdown AST Parser",
+			"complexityScore": 6,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down the Markdown AST Parser implementation into subtasks: 1) Define dataclasses for OrderSection and OrderAST, 2) Implement regex patterns for citations, entities, and Daubert mentions, 3) Develop the state machine in parse_md_to_ast function to handle headers, blockquotes, and edge cases.",
+			"reasoning": "Implementing a parser with regex patterns, state machine, and handling of specific Markdown structures (e.g., citations, entities) requires careful text processing and error handling. It has moderate technical challenges due to potential edge cases in parsing 19 files, dependencies on task 1, and unit testing needs. Recommended subtasks to modularize regex logic, dataclass definitions, and state machine implementation."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Implement Basic Metadata Extraction",
+			"complexityScore": 4,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "",
+			"reasoning": "This involves text parsing and helper functions for extracting metadata fields from AST, which is straightforward with regex and string manipulation. Low to medium complexity due to dependencies on task 2, but testing is simple assertions on sample data. No expansion needed as it's a focused extraction service."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Integrate Deep Legal Analysis with GPT-5.1",
+			"complexityScore": 8,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Expand into subtasks: 1) Set up AsyncOpenAI client and GPT_CONFIG, 2) Craft and integrate system/user prompts, 3) Implement JSON parsing and metadata addition (tokens, cost), 4) Add retry logic with tenacity for error handling.",
+			"reasoning": "High complexity from integrating OpenAI API with specific model config, prompt engineering, async handling, JSON schema validation, and retry mechanisms. Dependencies on task 3, extensive testing with mocks and integration, and potential API rate limits make it challenging. Subtasks recommended to separate API setup, prompt design, response processing, and error handling."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Implement Embedding Generation Service",
+			"complexityScore": 5,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "",
+			"reasoning": "Building an EmbeddingService with sentence-transformers for vector generation is moderately complex, involving model loading and chunking analysis sections. Dependencies on task 4, but testing focuses on dimension verification and similarity checks. No expansion needed as it's a cohesive service class."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Set up Database Schema and Storage",
+			"complexityScore": 7,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Divide into subtasks: 1) Design and execute SQL for tables (orders, FTS5, embeddings), 2) Implement DatabaseService with insert_order method and triggers.",
+			"reasoning": "Designing SQLite schema with FTS5 virtual tables and vector storage using sqlite-vec introduces technical challenges in schema relationships and triggers. High effort in ensuring data integrity, dependencies on task 5, and testing insertions/queries. Recommended subtasks for schema creation and service implementation."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Develop Parallel Processing Pipeline",
+			"complexityScore": 9,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break into subtasks: 1) Implement process_single_order async function integrating all services, 2) Add semaphore for rate limiting GPT calls, 3) Develop process_all_orders with asyncio.gather and logging.",
+			"reasoning": "Very high complexity due to orchestrating parallel async processing of 19 orders, integrating multiple services (parsing to storage), rate limiting, and time constraints (45 minutes). Dependencies on task 6, extensive testing for concurrency and errors. Subtasks to separate single-order logic, concurrency control, and overall pipeline."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Set up FastAPI Backend and Core Endpoints",
+			"complexityScore": 5,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "",
+			"reasoning": "Setting up FastAPI with CORS, routers, and basic endpoints is standard web framework work with moderate effort for Pydantic models and pagination. Dependencies on task 7, testing via HTTP requests. No expansion needed as it's endpoint-focused."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "Implement Search Services",
+			"complexityScore": 7,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Expand to subtasks: 1) Implement keyword_search with FTS5 MATCH and ranking, 2) Develop semantic_search with embedding similarity and result enrichment.",
+			"reasoning": "High complexity in combining FTS5 keyword search with vector similarity using sqlite-vec, including query embedding and merging results. Dependencies on task 8, performance testing for latency. Subtasks for separating keyword and semantic search logic."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Add Search API Endpoints and Final Integration",
+			"complexityScore": 6,
+			"recommendedSubtasks": 0,
+			"expansionPrompt": "",
+			"reasoning": "Integrating search services into API routes with error handling and logging is moderately complex, building on task 9. End-to-end testing and production readiness add effort, but it's focused on API completion. No expansion needed as it's integration-oriented."
+		}
+	]
+}
