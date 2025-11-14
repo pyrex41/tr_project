@@ -382,33 +382,51 @@ async def get_insights():
             results = search_service.keyword_search(term, limit=100)
             term_counts[term] = len(results)
 
-        insights = {
-            "overview": {
-                "total_orders": total_orders,
-                "year_range": year_range,
-                "orders_with_daubert": with_daubert,
-                "daubert_percentage": round((with_daubert / total_orders * 100), 1) if total_orders > 0 else 0
+        # Transform into list of insight objects for frontend
+        insights_list = [
+            {
+                "id": "daubert-rate",
+                "type": "pattern",
+                "description": f"{round((with_daubert / total_orders * 100), 1)}% of orders involve Daubert analysis ({with_daubert}/{total_orders})",
+                "evidence": [o['id'] for o in orders if o['metadata'].get('has_daubert', False)][:5],
+                "confidence": 1.0,
+                "strength": "high"
             },
-            "expert_analysis": {
-                "total_expert_mentions": total_experts,
-                "average_experts_per_case": round(avg_experts, 1)
+            {
+                "id": "expert-frequency",
+                "type": "statistic",
+                "description": f"Average {round(avg_experts, 1)} expert witnesses per case (total: {total_experts} across {total_orders} orders)",
+                "evidence": [o['id'] for o in orders if o['metadata'].get('expert_count', 0) > 0][:5],
+                "confidence": 1.0,
+                "strength": "high"
             },
-            "common_terms": term_counts,
-            "patterns": {
-                "description": "Judge Boyle's expert witness rulings demonstrate consistent application of Daubert standards",
-                "key_themes": [
-                    "Methodological rigor and scientific validity",
-                    "Qualification requirements for expert testimony",
-                    "Fit between expert opinion and case issues",
-                    "Reliability and relevance considerations"
-                ]
+            {
+                "id": "testimony-prevalence",
+                "type": "pattern",
+                "description": f"Expert testimony appears in {term_counts.get('testimony', 0)} orders, indicating central role in case outcomes",
+                "evidence": [],
+                "confidence": 0.9,
+                "strength": "high"
+            },
+            {
+                "id": "methodology-challenges",
+                "type": "trend",
+                "description": f"Methodology challenged in {term_counts.get('methodology', 0)} orders; reliability questioned in {term_counts.get('reliability', 0)} orders",
+                "evidence": [],
+                "confidence": 0.85,
+                "strength": "moderate"
+            },
+            {
+                "id": "judicial-consistency",
+                "type": "pattern",
+                "description": "Judge Boyle demonstrates consistent application of Daubert standards across expert witness admissibility",
+                "evidence": [o['id'] for o in orders if o['metadata'].get('has_daubert', False)][:5],
+                "confidence": 0.8,
+                "strength": "moderate"
             }
-        }
+        ]
 
-        return {
-            "success": True,
-            "data": insights
-        }
+        return insights_list
 
     except Exception as e:
         logger.error(f"Error generating insights: {e}", exc_info=True)
