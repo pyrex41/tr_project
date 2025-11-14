@@ -4,6 +4,7 @@ FastAPI Backend for Legal Orders Analysis
 Main application entry point with CORS, routes, and error handling.
 """
 
+import json
 import logging
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -111,18 +112,22 @@ async def get_stats():
             rows = cursor.fetchall()
 
             total_orders = len(rows)
-            total_experts = 0
+            all_expert_names = set()  # Track unique expert names
             total_citations = 0
             total_word_count = 0
             daubert_count = 0
 
             for row in rows:
                 metadata = db_service._parse_json(row['metadata_json'])
-                total_experts += metadata.get('expert_count', 0)
+                # Add expert names to set for deduplication
+                expert_names = metadata.get('expert_names', [])
+                all_expert_names.update(expert_names)
                 total_citations += metadata.get('citation_count', 0)
                 total_word_count += metadata.get('word_count', 0)
                 if metadata.get('has_daubert', False):
                     daubert_count += 1
+
+            total_experts = len(all_expert_names)  # Count unique experts
 
             # Calculate metrics
             avg_citations = round(total_citations / total_orders, 1) if total_orders > 0 else 0.0
@@ -157,8 +162,38 @@ async def get_orders(limit: int = 100, offset: int = 0):
         offset: Number of results to skip (default: 0)
     """
     try:
-        orders = db_service.get_all_orders(limit=limit, offset=offset)
-        return orders
+        # Get orders with analysis in a single query (optimized)
+        orders = db_service.get_all_orders(limit=limit, offset=offset, include_analysis=True)
+
+        # Transform to match frontend OrderCard structure
+        transformed_orders = []
+        for order in orders:
+            metadata = order.get('metadata', {})
+
+            # Extract case_context for summary from analysis
+            if order.get('analysis'):
+                analysis_obj = order['analysis']
+                analysis = analysis_obj.get('analysis', {})
+
+                # Extract case_context for summary, truncate to ~200 chars
+                case_context = str(analysis.get('case_context', ''))
+                summary = case_context[:200]
+                if len(case_context) > 200:
+                    summary += '...'
+            else:
+                summary = 'No summary available'
+
+            transformed_orders.append({
+                'id': order['id'],
+                'case_name': metadata.get('case_name', order['filename']),
+                'date': metadata.get('date'),
+                'expert_names': metadata.get('expert_names', []),
+                'summary': summary,
+                'has_daubert_analysis': metadata.get('has_daubert', False),
+                'has_exclusion': metadata.get('has_exclusion', False)
+            })
+
+        return transformed_orders
     except Exception as e:
         logger.error(f"Error getting orders: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -405,9 +440,12 @@ async def get_insights():
         ]
 
         term_counts = {}
+        term_evidence = {}
         for term in common_terms:
             results = search_service.keyword_search(term, limit=100)
             term_counts[term] = len(results)
+            # Store ALL order IDs that match (not limited)
+            term_evidence[term] = [r['id'] for r in results]
 
         # Transform into list of insight objects for frontend
         insights_list = [
@@ -415,7 +453,7 @@ async def get_insights():
                 "id": "daubert-rate",
                 "type": "pattern",
                 "description": f"{round((with_daubert / total_orders * 100), 1)}% of orders involve Daubert analysis ({with_daubert}/{total_orders})",
-                "evidence": [o['id'] for o in orders if o['metadata'].get('has_daubert', False)][:5],
+                "evidence": [o['id'] for o in orders if o['metadata'].get('has_daubert', False)],
                 "confidence": 1.0,
                 "strength": "high"
             },
@@ -423,7 +461,7 @@ async def get_insights():
                 "id": "expert-frequency",
                 "type": "statistic",
                 "description": f"Average {round(avg_experts, 1)} expert witnesses per case (total: {total_experts} across {total_orders} orders)",
-                "evidence": [o['id'] for o in orders if o['metadata'].get('expert_count', 0) > 0][:5],
+                "evidence": [o['id'] for o in orders if o['metadata'].get('expert_count', 0) > 0],
                 "confidence": 1.0,
                 "strength": "high"
             },
@@ -431,7 +469,7 @@ async def get_insights():
                 "id": "testimony-prevalence",
                 "type": "pattern",
                 "description": f"Expert testimony appears in {term_counts.get('testimony', 0)} orders, indicating central role in case outcomes",
-                "evidence": [],
+                "evidence": term_evidence.get('testimony', []),
                 "confidence": 0.9,
                 "strength": "high"
             },
@@ -439,7 +477,7 @@ async def get_insights():
                 "id": "methodology-challenges",
                 "type": "trend",
                 "description": f"Methodology challenged in {term_counts.get('methodology', 0)} orders; reliability questioned in {term_counts.get('reliability', 0)} orders",
-                "evidence": [],
+                "evidence": term_evidence.get('methodology', []),
                 "confidence": 0.85,
                 "strength": "moderate"
             },
@@ -447,7 +485,7 @@ async def get_insights():
                 "id": "judicial-consistency",
                 "type": "pattern",
                 "description": "Judge Boyle demonstrates consistent application of Daubert standards across expert witness admissibility",
-                "evidence": [o['id'] for o in orders if o['metadata'].get('has_daubert', False)][:5],
+                "evidence": [o['id'] for o in orders if o['metadata'].get('has_daubert', False)],
                 "confidence": 0.8,
                 "strength": "moderate"
             }

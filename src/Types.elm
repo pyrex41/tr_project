@@ -249,6 +249,8 @@ type alias OrderCard =
     , date : Maybe String
     , expertNames : List String
     , summary : String
+    , hasDaubertAnalysis : Bool
+    , hasExclusion : Bool
     }
 
 
@@ -260,6 +262,8 @@ orderCardDecoder =
         |> optional "date" (nullable string) Nothing
         |> required "expert_names" (list string)
         |> required "summary" string
+        |> required "has_daubert_analysis" bool
+        |> optional "has_exclusion" bool False
 
 
 orderCardsListDecoder : Decoder (List OrderCard)

@@ -316,36 +316,50 @@ class DatabaseService:
                 'updated_at': row['updated_at']
             }
 
-    def get_all_orders(self, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
+    def get_all_orders(self, limit: int = 100, offset: int = 0, include_analysis: bool = False) -> List[Dict[str, Any]]:
         """
         Get all orders with pagination.
 
         Args:
             limit: Maximum number of results
             offset: Number of results to skip
+            include_analysis: Whether to include analysis_json in response
 
         Returns:
             List of order dictionaries
         """
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            cursor.execute("""
-                SELECT id, filename, metadata_json, created_at
-                FROM orders
-                ORDER BY created_at DESC
-                LIMIT ? OFFSET ?
-            """, (limit, offset))
+
+            if include_analysis:
+                cursor.execute("""
+                    SELECT id, filename, metadata_json, analysis_json, created_at
+                    FROM orders
+                    ORDER BY created_at DESC
+                    LIMIT ? OFFSET ?
+                """, (limit, offset))
+            else:
+                cursor.execute("""
+                    SELECT id, filename, metadata_json, created_at
+                    FROM orders
+                    ORDER BY created_at DESC
+                    LIMIT ? OFFSET ?
+                """, (limit, offset))
 
             rows = cursor.fetchall()
-            return [
-                {
+            result = []
+            for row in rows:
+                order_dict = {
                     'id': row['id'],
                     'filename': row['filename'],
                     'metadata': json.loads(row['metadata_json']),
                     'created_at': row['created_at']
                 }
-                for row in rows
-            ]
+                if include_analysis and 'analysis_json' in row.keys():
+                    order_dict['analysis'] = json.loads(row['analysis_json']) if row['analysis_json'] else None
+                result.append(order_dict)
+
+            return result
 
     def keyword_search(self, query: str, limit: int = 10) -> List[Dict[str, Any]]:
         """

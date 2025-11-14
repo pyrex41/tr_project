@@ -84,10 +84,18 @@ initPage apiBaseUrl url =
             let
                 -- Extract query parameter from URL
                 queryParam =
-                    url.query
-                        |> Maybe.andThen (String.split "&" >> List.filter (String.startsWith "q=") >> List.head)
-                        |> Maybe.map (String.dropLeft 2 >> Url.percentDecode >> Maybe.withDefault "")
-                        |> Maybe.withDefault ""
+                    case url.query of
+                        Nothing ->
+                            ""
+
+                        Just queryString ->
+                            queryString
+                                |> String.split "&"
+                                |> List.filter (String.startsWith "q=")
+                                |> List.head
+                                |> Maybe.map (String.dropLeft 2)
+                                |> Maybe.andThen Url.percentDecode
+                                |> Maybe.withDefault ""
 
                 ( searchModel, searchCmd ) =
                     Pages.Search.init apiBaseUrl queryParam
@@ -176,7 +184,7 @@ update msg model =
                         ( newDashboardModel, dashboardCmd ) =
                             Pages.Dashboard.update dashboardMsg dashboardModel
 
-                        -- Handle search submission navigation
+                        -- Handle search submission and order navigation
                         navigationCmd =
                             case dashboardMsg of
                                 Pages.Dashboard.SearchSubmitted ->
@@ -185,6 +193,9 @@ update msg model =
 
                                     else
                                         Nav.pushUrl model.key ("/search?q=" ++ Url.percentEncode newDashboardModel.searchQuery)
+
+                                Pages.Dashboard.NavigateToOrder orderId ->
+                                    Nav.pushUrl model.key ("/order/" ++ String.fromInt orderId)
 
                                 _ ->
                                     Cmd.none
@@ -206,11 +217,18 @@ update msg model =
                         ( newSearchModel, searchCmd ) =
                             Pages.Search.update searchMsg searchModel
 
-                        -- Handle order selection navigation
+                        -- Handle navigation
                         navigationCmd =
                             case searchMsg of
                                 Pages.Search.OrderSelected orderId ->
                                     Nav.pushUrl model.key ("/order/" ++ String.fromInt orderId)
+
+                                Pages.Search.SearchSubmitted ->
+                                    if String.isEmpty newSearchModel.query then
+                                        Cmd.none
+                                    else
+                                        -- Update URL to preserve search query for back button
+                                        Nav.replaceUrl model.key ("/search?q=" ++ Url.percentEncode newSearchModel.query)
 
                                 _ ->
                                     Cmd.none

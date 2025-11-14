@@ -62,6 +62,7 @@ type Msg
     | OpenModal ModalType
     | CloseModal
     | GotModalOrders (Result Http.Error (List Types.OrderCard))
+    | NavigateToOrder Int
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -107,6 +108,10 @@ update msg model =
 
                 Err error ->
                     ( { model | modalOrders = Failure error }, Cmd.none )
+
+        NavigateToOrder orderId ->
+            -- Close modal before navigation (navigation handled in Main.elm)
+            ( { model | modalState = Nothing, modalOrders = NotAsked }, Cmd.none )
 
 
 -- VIEW
@@ -263,42 +268,13 @@ viewInsightCard insight =
             ]
         , p [ class "text-gray-800 mb-2" ]
             [ text insight.description ]
-        , div [ class "text-sm text-gray-600" ]
-            [ text ("Evidence: " ++ String.fromInt (List.length insight.evidence) ++ " orders") ]
         ]
 
 
 viewCharts : Model -> Html msg
 viewCharts model =
-    case model.stats of
-        Success stats ->
-            div [ class "mb-8" ]
-                [ h2 [ class "text-2xl font-bold text-gray-800 mb-4" ]
-                    [ text "Visual Analytics" ]
-                , div [ class "grid grid-cols-1 md:grid-cols-2 gap-6" ]
-                    [ div [ class "bg-white rounded-lg shadow-md p-6" ]
-                        [ h3 [ class "text-lg font-semibold text-gray-700 mb-4" ]
-                            [ text "Orders Distribution" ]
-                        , Components.Chart.barChart
-                            [ { label = "Total", value = toFloat stats.totalOrders, color = "#2563eb" }
-                            , { label = "With Daubert", value = toFloat stats.daubertAnalysisCount, color = "#7c3aed" }
-                            , { label = "Experts", value = toFloat stats.totalExperts, color = "#059669" }
-                            ]
-                        ]
-                    , div [ class "bg-white rounded-lg shadow-md p-6" ]
-                        [ h3 [ class "text-lg font-semibold text-gray-700 mb-4" ]
-                            [ text "Metrics Overview" ]
-                        , Components.Chart.pieChart
-                            [ { label = "Avg Citations", value = stats.avgCitations, color = "#8b5cf6" }
-                            , { label = "Avg Words", value = toFloat stats.avgWordCount / 100, color = "#f97316" }
-                            , { label = "Exclusion %", value = stats.exclusionRate, color = "#ef4444" }
-                            ]
-                        ]
-                    ]
-                ]
-
-        _ ->
-            text ""
+    -- Charts removed - data didn't translate well to visual format
+    text ""
 
 
 -- MODAL VIEWS
@@ -392,7 +368,10 @@ viewOrdersList orders =
 
 viewOrderCard : Types.OrderCard -> Html Msg
 viewOrderCard order =
-    div [ class "bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition" ]
+    div
+        [ class "bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition cursor-pointer"
+        , onClick (NavigateToOrder order.id)
+        ]
         [ h4 [ class "text-lg font-bold text-blue-900 mb-2" ]
             [ text order.caseName ]
         , div [ class "flex items-center gap-4 text-sm text-gray-600 mb-2" ]
@@ -462,32 +441,43 @@ viewExpertCase order =
 
 viewExclusionList : List Types.OrderCard -> Html Msg
 viewExclusionList orders =
-    div []
-        [ p [ class "text-gray-600 mb-4" ]
-            [ text "Analysis of expert exclusion patterns. Note: Detailed ruling information requires full order analysis." ]
-        , viewOrdersList orders
-        ]
-
-
-viewDaubertList : List Types.OrderCard -> Html Msg
-viewDaubertList orders =
     let
-        -- Filter orders that likely have Daubert analysis (would need backend support for accurate filtering)
-        daubertOrders =
+        -- Filter orders that have expert exclusions
+        exclusionOrders =
             orders
-                |> List.filter (\order -> String.contains "Daubert" order.summary || String.contains "daubert" order.summary)
+                |> List.filter .hasExclusion
     in
-    if List.isEmpty daubertOrders then
+    if List.isEmpty exclusionOrders then
         div [ class "text-center py-8" ]
             [ p [ class "text-gray-600" ]
-                [ text "Daubert analysis information is available in full order details." ]
-            , div [ class "mt-4" ]
-                [ viewOrdersList orders ]
+                [ text "No orders with expert exclusions found in this dataset." ]
             ]
 
     else
         div []
             [ p [ class "text-gray-600 mb-4" ]
-                [ text ("Showing " ++ String.fromInt (List.length daubertOrders) ++ " orders with Daubert analysis references") ]
+                [ text ("Showing " ++ String.fromInt (List.length exclusionOrders) ++ " order(s) where experts were excluded or struck.") ]
+            , viewOrdersList exclusionOrders
+            ]
+
+
+viewDaubertList : List Types.OrderCard -> Html Msg
+viewDaubertList orders =
+    let
+        -- Filter orders that have Daubert analysis based on metadata flag
+        daubertOrders =
+            orders
+                |> List.filter .hasDaubertAnalysis
+    in
+    if List.isEmpty daubertOrders then
+        div [ class "text-center py-8" ]
+            [ p [ class "text-gray-600" ]
+                [ text "No orders with Daubert analysis found." ]
+            ]
+
+    else
+        div []
+            [ p [ class "text-gray-600 mb-4" ]
+                [ text ("Showing " ++ String.fromInt (List.length daubertOrders) ++ " orders with Daubert analysis") ]
             , viewOrdersList daubertOrders
             ]
