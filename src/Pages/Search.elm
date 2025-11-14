@@ -87,7 +87,11 @@ performSearch : String -> SearchType -> String -> Cmd Msg
 performSearch apiBaseUrl searchType query =
     let
         params =
-            { query = query, page = 0, limit = 20 }
+            { query = query
+            , page = 0
+            , limit = 20
+            , minScore = Nothing  -- Use backend default (0.3)
+            }
     in
     case searchType of
         Keyword ->

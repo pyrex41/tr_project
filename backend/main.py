@@ -28,6 +28,7 @@ class SearchRequest(BaseModel):
     query: str
     page: int = 1
     limit: int = 10
+    min_score: float = 0.3  # Minimum similarity/relevance threshold (0.0-1.0)
 
 # Global services
 db_service: DatabaseService = None
@@ -210,6 +211,11 @@ async def keyword_search(request: SearchRequest):
         # Transform results to match frontend expectations
         transformed = []
         for r in results:
+            # Filter by minimum score
+            score = abs(r.get('relevance_score', 0.0))
+            if score < request.min_score:
+                continue
+
             metadata = r.get('metadata', {})
             # Extract a meaningful snippet from the raw text (first 200 chars)
             raw_text = r.get('raw_text', '')
@@ -219,7 +225,7 @@ async def keyword_search(request: SearchRequest):
                 "order_id": r['id'],
                 "case_name": metadata.get('case_name', r['filename']),
                 "snippet": snippet if snippet.strip() else metadata.get('case_name', r['filename']),
-                "score": abs(r.get('relevance_score', 0.0)),
+                "score": score,
                 "insights": None,
                 "metadata": {
                     "date": metadata.get('date'),
@@ -254,6 +260,11 @@ async def semantic_search(request: SearchRequest):
         # Transform results to match frontend expectations
         transformed = []
         for r in results:
+            # Filter by minimum similarity score
+            score = r.get('similarity_score', 0.0)
+            if score < request.min_score:
+                continue
+
             metadata = r.get('metadata', {})
             # Semantic search doesn't include raw_text, use case name as snippet
             case_name = metadata.get('case_name', r.get('filename', 'Unknown Case'))
@@ -262,7 +273,7 @@ async def semantic_search(request: SearchRequest):
                 "order_id": r['order_id'],  # Semantic search uses 'order_id' not 'id'
                 "case_name": case_name,
                 "snippet": case_name,  # Use case name as snippet for semantic search
-                "score": r.get('similarity_score', 0.0),
+                "score": score,
                 "insights": None,
                 "metadata": {
                     "date": metadata.get('date'),

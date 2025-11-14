@@ -51,20 +51,30 @@ type alias KeywordSearchParams =
     { query : String
     , page : Int
     , limit : Int
+    , minScore : Maybe Float  -- Optional minimum relevance threshold (0.0-1.0)
     }
 
 
 keywordSearch : String -> KeywordSearchParams -> (Result Http.Error (List SearchResult) -> msg) -> Cmd msg
 keywordSearch apiBaseUrl params toMsg =
+    let
+        baseParams =
+            [ ( "query", Encode.string params.query )
+            , ( "page", Encode.int params.page )
+            , ( "limit", Encode.int params.limit )
+            ]
+
+        allParams =
+            case params.minScore of
+                Just score ->
+                    baseParams ++ [ ( "min_score", Encode.float score ) ]
+
+                Nothing ->
+                    baseParams
+    in
     Http.post
         { url = buildUrl apiBaseUrl "/api/search/keyword"
-        , body =
-            Http.jsonBody <|
-                Encode.object
-                    [ ( "query", Encode.string params.query )
-                    , ( "page", Encode.int params.page )
-                    , ( "limit", Encode.int params.limit )
-                    ]
+        , body = Http.jsonBody <| Encode.object allParams
         , expect = Http.expectJson toMsg searchResultsListDecoder
         }
 
@@ -76,20 +86,30 @@ type alias SemanticSearchParams =
     { query : String
     , page : Int
     , limit : Int
+    , minScore : Maybe Float  -- Optional minimum similarity threshold (0.0-1.0)
     }
 
 
 semanticSearch : String -> SemanticSearchParams -> (Result Http.Error (List SearchResult) -> msg) -> Cmd msg
 semanticSearch apiBaseUrl params toMsg =
+    let
+        baseParams =
+            [ ( "query", Encode.string params.query )
+            , ( "page", Encode.int params.page )
+            , ( "limit", Encode.int params.limit )
+            ]
+
+        allParams =
+            case params.minScore of
+                Just score ->
+                    baseParams ++ [ ( "min_score", Encode.float score ) ]
+
+                Nothing ->
+                    baseParams
+    in
     Http.post
         { url = buildUrl apiBaseUrl "/api/search/semantic"
-        , body =
-            Http.jsonBody <|
-                Encode.object
-                    [ ( "query", Encode.string params.query )
-                    , ( "page", Encode.int params.page )
-                    , ( "limit", Encode.int params.limit )
-                    ]
+        , body = Http.jsonBody <| Encode.object allParams
         , expect = Http.expectJson toMsg searchResultsListDecoder
         }
 
