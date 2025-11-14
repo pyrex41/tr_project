@@ -2,7 +2,8 @@ module Components.Layout exposing (view)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, preventDefaultOn)
+import Json.Decode as Decode
 
 
 type alias Config msg =
@@ -56,6 +57,7 @@ navLink config label path =
     in
     a
         [ class ("pb-1 cursor-pointer " ++ activeClasses)
-        , onClick (config.onNavigate path)
+        , href path
+        , preventDefaultOn "click" (Decode.succeed ( config.onNavigate path, True ))
         ]
         [ text label ]

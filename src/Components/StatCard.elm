@@ -2,19 +2,41 @@ module Components.StatCard exposing (view)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Html.Events exposing (onClick)
 
 
-type alias Config =
+type alias Config msg =
     { title : String
     , value : String
     , icon : String
     , color : String
+    , onClick : Maybe msg
     }
 
 
-view : Config -> Html msg
+view : Config msg -> Html msg
 view config =
-    div [ class "bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition" ]
+    let
+        baseClasses =
+            "bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition"
+
+        clickableClasses =
+            case config.onClick of
+                Just _ ->
+                    baseClasses ++ " cursor-pointer hover:bg-blue-50"
+
+                Nothing ->
+                    baseClasses
+
+        attributes =
+            case config.onClick of
+                Just msg ->
+                    [ class clickableClasses, onClick msg ]
+
+                Nothing ->
+                    [ class clickableClasses ]
+    in
+    div attributes
         [ div [ class "flex items-center justify-between" ]
             [ div [ class "flex-1" ]
                 [ p [ class "text-sm font-medium text-gray-600 mb-1" ]

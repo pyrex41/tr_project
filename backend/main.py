@@ -28,7 +28,7 @@ class SearchRequest(BaseModel):
     query: str
     page: int = 1
     limit: int = 10
-    min_score: float = 0.3  # Minimum similarity/relevance threshold (0.0-1.0)
+    min_score: float = 0.0  # Minimum similarity/relevance threshold (0.0-1.0)
 
 # Global services
 db_service: DatabaseService = None
@@ -158,11 +158,7 @@ async def get_orders(limit: int = 100, offset: int = 0):
     """
     try:
         orders = db_service.get_all_orders(limit=limit, offset=offset)
-        return {
-            "success": True,
-            "count": len(orders),
-            "data": orders
-        }
+        return orders
     except Exception as e:
         logger.error(f"Error getting orders: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -182,10 +178,41 @@ async def get_order(order_id: int):
         if not order:
             raise HTTPException(status_code=404, detail=f"Order {order_id} not found")
 
-        return {
-            "success": True,
-            "data": order
+        # Transform to match frontend schema
+        metadata = order.get('metadata', {})
+        analysis_data = order.get('analysis', {})
+
+        # Extract analysis object (nested in GPT response)
+        analysis_obj = analysis_data.get('analysis', {}) if isinstance(analysis_data, dict) else {}
+
+        transformed = {
+            "id": order['id'],
+            "case_name": metadata.get('case_name', order['filename']),
+            "date": metadata.get('date'),
+            "docket_number": metadata.get('docket_number'),
+            "expert_names": metadata.get('expert_names', []),
+            "full_text": order.get('raw_text', ''),
+            "citations_count": metadata.get('citation_count', 0),
+            "word_count": metadata.get('word_count', 0),
+            "has_daubert_analysis": metadata.get('has_daubert', False),
+            "analysis": {
+                "summary": str(analysis_obj.get('case_context', '')),
+                "ruling_type": "unknown",  # TODO: extract from analysis
+                "expert_field": str(analysis_obj.get('expert_profile', '')),
+                "methodologies": [],  # TODO: extract from analysis
+                "exclusion_grounds": [],  # TODO: extract from analysis
+                "key_findings": [],  # TODO: extract from analysis
+                "strategic_implications": str(analysis_obj.get('implications', '')),
+                "citation_context": str(analysis_obj.get('precedent_analysis', ''))
+            },
+            "citations": [
+                {"text": cit, "type": "case", "context": None, "keycite_status": None}
+                for cit in metadata.get('citations', [])
+            ],
+            "quotes": []  # TODO: extract key quotes from analysis
         }
+
+        return transformed
     except HTTPException:
         raise
     except Exception as e:
@@ -225,7 +252,7 @@ async def keyword_search(request: SearchRequest):
                 "order_id": r['id'],
                 "case_name": metadata.get('case_name', r['filename']),
                 "snippet": snippet if snippet.strip() else metadata.get('case_name', r['filename']),
-                "score": score,
+                "score": round(score, 4),  # Round to 4 decimal places for readability
                 "insights": None,
                 "metadata": {
                     "date": metadata.get('date'),
@@ -273,7 +300,7 @@ async def semantic_search(request: SearchRequest):
                 "order_id": r['order_id'],  # Semantic search uses 'order_id' not 'id'
                 "case_name": case_name,
                 "snippet": case_name,  # Use case name as snippet for semantic search
-                "score": score,
+                "score": round(score, 4),  # Round to 4 decimal places for readability
                 "insights": None,
                 "metadata": {
                     "date": metadata.get('date'),

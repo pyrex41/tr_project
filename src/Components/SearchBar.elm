@@ -2,7 +2,8 @@ module Components.SearchBar exposing (view)
 
 import Html exposing (..)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onInput, onClick)
+import Html.Events exposing (onInput, onClick, on)
+import Json.Decode as Decode
 import Types exposing (SearchType(..))
 
 
@@ -16,6 +17,19 @@ type alias Config msg =
     }
 
 
+-- Helper function to trigger submit on Enter key press
+onEnter : msg -> Html.Attribute msg
+onEnter msg =
+    let
+        isEnter code =
+            if code == 13 then
+                Decode.succeed msg
+            else
+                Decode.fail "not ENTER"
+    in
+    on "keydown" (Decode.andThen isEnter (Decode.field "keyCode" Decode.int))
+
+
 view : Config msg -> Html msg
 view config =
     div [ class "bg-white rounded-lg shadow-md p-6 mb-6" ]
@@ -27,6 +41,7 @@ view config =
                     , placeholder config.placeholder
                     , value config.query
                     , onInput config.onQueryChange
+                    , onEnter config.onSubmit
                     ]
                     []
                 ]

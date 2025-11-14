@@ -182,6 +182,21 @@ viewResults model toMsg onOrderSelect =
                 ]
 
 
+formatScore : Float -> String
+formatScore score =
+    -- BM25 scores are typically negative, lower (more negative) is better
+    -- For display, we'll show them as positive relevance scores
+    let
+        displayScore = abs score
+    in
+    if displayScore >= 10 then
+        String.fromFloat (toFloat (round displayScore))
+    else if displayScore >= 1 then
+        String.fromFloat (toFloat (round (displayScore * 10)) / 10)
+    else
+        String.fromFloat (toFloat (round (displayScore * 100)) / 100)
+
+
 viewResultCard : (Int -> msg) -> SearchResult -> Html msg
 viewResultCard onOrderSelect result =
     div
@@ -192,7 +207,7 @@ viewResultCard onOrderSelect result =
             [ h3 [ class "text-xl font-bold text-blue-900 flex-1" ]
                 [ text result.caseName ]
             , span [ class "text-sm font-semibold text-blue-600 ml-4" ]
-                [ text ("Score: " ++ String.fromFloat (result.score * 100) ++ "%") ]
+                [ text ("Score: " ++ formatScore result.score) ]
             ]
         , div [ class "flex items-center gap-4 text-sm text-gray-600 mb-3" ]
             [ case result.metadata.date of

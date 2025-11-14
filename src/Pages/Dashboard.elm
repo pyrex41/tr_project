@@ -4,13 +4,22 @@ import Api
 import Components.Chart
 import Components.SearchBar
 import Components.StatCard
+import Dict
 import Html exposing (..)
 import Html.Attributes exposing (..)
+import Html.Events exposing (onClick)
 import Http
 import Types exposing (ChartData, Insight, RemoteData(..), SearchType(..), Stats)
 
 
 -- MODEL
+
+
+type ModalType
+    = OrdersModal
+    | ExpertsModal
+    | ExclusionModal
+    | DaubertModal
 
 
 type alias Model =
@@ -19,6 +28,8 @@ type alias Model =
     , insights : RemoteData Http.Error (List Insight)
     , searchQuery : String
     , searchType : SearchType
+    , modalState : Maybe ModalType
+    , modalOrders : RemoteData Http.Error (List Types.OrderCard)
     }
 
 
@@ -29,6 +40,8 @@ init apiBaseUrl =
       , insights = Loading
       , searchQuery = ""
       , searchType = Keyword
+      , modalState = Nothing
+      , modalOrders = NotAsked
       }
     , Cmd.batch
         [ Api.getStats apiBaseUrl GotStats
@@ -46,6 +59,9 @@ type Msg
     | SearchQueryChanged String
     | SearchTypeChanged SearchType
     | SearchSubmitted
+    | OpenModal ModalType
+    | CloseModal
+    | GotModalOrders (Result Http.Error (List Types.OrderCard))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -76,6 +92,22 @@ update msg model =
         SearchSubmitted ->
             ( model, Cmd.none )
 
+        OpenModal modalType ->
+            ( { model | modalState = Just modalType, modalOrders = Loading }
+            , Api.getOrders model.apiBaseUrl { page = 0, limit = 100 } GotModalOrders
+            )
+
+        CloseModal ->
+            ( { model | modalState = Nothing, modalOrders = NotAsked }, Cmd.none )
+
+        GotModalOrders result ->
+            case result of
+                Ok orders ->
+                    ( { model | modalOrders = Success orders }, Cmd.none )
+
+                Err error ->
+                    ( { model | modalOrders = Failure error }, Cmd.none )
+
 
 -- VIEW
 
@@ -92,9 +124,10 @@ view model toMsg onNavigate =
                 [ text "U.S. District Court, Northern District of Texas - 19 Expert Orders Analyzed" ]
             ]
         , Html.map toMsg (viewSearchBar model)
-        , viewStats model
+        , Html.map toMsg (viewStats model)
         , viewInsights model
         , viewCharts model
+        , Html.map toMsg (viewModal model)
         ]
 
 
@@ -110,7 +143,7 @@ viewSearchBar model =
         }
 
 
-viewStats : Model -> Html msg
+viewStats : Model -> Html Msg
 viewStats model =
     case model.stats of
         NotAsked ->
@@ -137,36 +170,42 @@ viewStats model =
                         , value = String.fromInt stats.totalOrders
                         , icon = "#"
                         , color = "text-blue-600"
+                        , onClick = Just (OpenModal OrdersModal)
                         }
                     , Components.StatCard.view
                         { title = "Total Experts"
                         , value = String.fromInt stats.totalExperts
                         , icon = "@"
                         , color = "text-green-600"
+                        , onClick = Just (OpenModal ExpertsModal)
                         }
                     , Components.StatCard.view
                         { title = "Exclusion Rate"
                         , value = String.fromFloat stats.exclusionRate ++ "%"
                         , icon = "%"
                         , color = "text-red-600"
+                        , onClick = Just (OpenModal ExclusionModal)
                         }
                     , Components.StatCard.view
                         { title = "Avg Citations"
                         , value = String.fromFloat stats.avgCitations
                         , icon = "*"
                         , color = "text-purple-600"
+                        , onClick = Nothing
                         }
                     , Components.StatCard.view
                         { title = "Avg Word Count"
                         , value = String.fromInt stats.avgWordCount
                         , icon = "~"
                         , color = "text-orange-600"
+                        , onClick = Nothing
                         }
                     , Components.StatCard.view
                         { title = "Daubert Analysis"
                         , value = String.fromInt stats.daubertAnalysisCount
                         , icon = "^"
                         , color = "text-indigo-600"
+                        , onClick = Just (OpenModal DaubertModal)
                         }
                     ]
                 ]
@@ -260,3 +299,195 @@ viewCharts model =
 
         _ ->
             text ""
+
+
+-- MODAL VIEWS
+
+
+viewModal : Model -> Html Msg
+viewModal model =
+    case model.modalState of
+        Nothing ->
+            text ""
+
+        Just modalType ->
+            div
+                [ class "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+                , onClick CloseModal
+                ]
+                [ div [ class "bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden" ]
+                    [ viewModalHeader modalType
+                    , viewModalContent model modalType
+                    ]
+                ]
+
+
+viewModalHeader : ModalType -> Html Msg
+viewModalHeader modalType =
+    div [ class "bg-blue-900 text-white px-6 py-4 flex items-center justify-between" ]
+        [ h3 [ class "text-xl font-bold" ]
+            [ text (modalTitle modalType) ]
+        , button
+            [ class "text-white hover:text-gray-200 text-2xl font-bold"
+            , onClick CloseModal
+            ]
+            [ text "×" ]
+        ]
+
+
+modalTitle : ModalType -> String
+modalTitle modalType =
+    case modalType of
+        OrdersModal ->
+            "All Orders"
+
+        ExpertsModal ->
+            "All Experts"
+
+        ExclusionModal ->
+            "Exclusion Analysis"
+
+        DaubertModal ->
+            "Orders with Daubert Analysis"
+
+
+viewModalContent : Model -> ModalType -> Html Msg
+viewModalContent model modalType =
+    div [ class "p-6 overflow-y-auto max-h-[calc(90vh-80px)]" ]
+        [ case model.modalOrders of
+            NotAsked ->
+                text ""
+
+            Loading ->
+                div [ class "flex justify-center items-center py-12" ]
+                    [ div [ class "animate-spin rounded-full h-12 w-12 border-b-2 border-blue-900" ] [] ]
+
+            Failure error ->
+                div [ class "bg-red-50 border border-red-200 rounded-lg p-4" ]
+                    [ p [ class "text-red-700" ]
+                        [ text "Failed to load data. Please try again." ]
+                    ]
+
+            Success orders ->
+                case modalType of
+                    OrdersModal ->
+                        viewOrdersList orders
+
+                    ExpertsModal ->
+                        viewExpertsList orders
+
+                    ExclusionModal ->
+                        viewExclusionList orders
+
+                    DaubertModal ->
+                        viewDaubertList orders
+        ]
+
+
+viewOrdersList : List Types.OrderCard -> Html Msg
+viewOrdersList orders =
+    div [ class "space-y-4" ]
+        (List.map viewOrderCard orders)
+
+
+viewOrderCard : Types.OrderCard -> Html Msg
+viewOrderCard order =
+    div [ class "bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition" ]
+        [ h4 [ class "text-lg font-bold text-blue-900 mb-2" ]
+            [ text order.caseName ]
+        , div [ class "flex items-center gap-4 text-sm text-gray-600 mb-2" ]
+            [ case order.date of
+                Just date ->
+                    span [] [ text date ]
+
+                Nothing ->
+                    text ""
+            , if not (List.isEmpty order.expertNames) then
+                span [ class "text-gray-500" ]
+                    [ text ("Experts: " ++ String.join ", " order.expertNames) ]
+
+              else
+                text ""
+            ]
+        , p [ class "text-gray-700 text-sm" ]
+            [ text order.summary ]
+        ]
+
+
+viewExpertsList : List Types.OrderCard -> Html Msg
+viewExpertsList orders =
+    let
+        -- Collect all unique experts with their cases
+        expertsWithCases =
+            orders
+                |> List.concatMap (\order -> List.map (\expert -> ( expert, order )) order.expertNames)
+                |> List.foldl
+                    (\( expert, order ) acc ->
+                        case Dict.get expert acc of
+                            Just cases ->
+                                Dict.insert expert (order :: cases) acc
+
+                            Nothing ->
+                                Dict.insert expert [ order ] acc
+                    )
+                    Dict.empty
+                |> Dict.toList
+    in
+    div [ class "space-y-6" ]
+        (List.map viewExpertGroup expertsWithCases)
+
+
+viewExpertGroup : ( String, List Types.OrderCard ) -> Html Msg
+viewExpertGroup ( expert, cases ) =
+    div [ class "bg-gray-50 rounded-lg p-4" ]
+        [ h4 [ class "text-lg font-bold text-green-700 mb-3" ]
+            [ text expert
+            , span [ class "text-sm text-gray-600 ml-2" ]
+                [ text ("(" ++ String.fromInt (List.length cases) ++ " case" ++ (if List.length cases == 1 then "" else "s") ++ ")") ]
+            ]
+        , div [ class "space-y-2" ]
+            (List.map viewExpertCase cases)
+        ]
+
+
+viewExpertCase : Types.OrderCard -> Html Msg
+viewExpertCase order =
+    div [ class "bg-white rounded p-3 text-sm" ]
+        [ p [ class "font-semibold text-blue-900 mb-1" ]
+            [ text order.caseName ]
+        , p [ class "text-gray-700" ]
+            [ text (String.left 150 order.summary ++ "...") ]
+        ]
+
+
+viewExclusionList : List Types.OrderCard -> Html Msg
+viewExclusionList orders =
+    div []
+        [ p [ class "text-gray-600 mb-4" ]
+            [ text "Analysis of expert exclusion patterns. Note: Detailed ruling information requires full order analysis." ]
+        , viewOrdersList orders
+        ]
+
+
+viewDaubertList : List Types.OrderCard -> Html Msg
+viewDaubertList orders =
+    let
+        -- Filter orders that likely have Daubert analysis (would need backend support for accurate filtering)
+        daubertOrders =
+            orders
+                |> List.filter (\order -> String.contains "Daubert" order.summary || String.contains "daubert" order.summary)
+    in
+    if List.isEmpty daubertOrders then
+        div [ class "text-center py-8" ]
+            [ p [ class "text-gray-600" ]
+                [ text "Daubert analysis information is available in full order details." ]
+            , div [ class "mt-4" ]
+                [ viewOrdersList orders ]
+            ]
+
+    else
+        div []
+            [ p [ class "text-gray-600 mb-4" ]
+                [ text ("Showing " ++ String.fromInt (List.length daubertOrders) ++ " orders with Daubert analysis references") ]
+            , viewOrdersList daubertOrders
+            ]

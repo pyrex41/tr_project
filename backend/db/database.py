@@ -366,9 +366,10 @@ class DatabaseService:
                     o.id,
                     o.filename,
                     o.metadata_json,
+                    o.raw_text,
                     bm25(orders_fts) as relevance_score
                 FROM orders_fts
-                JOIN orders o ON orders_fts.rowid = o.id
+                JOIN orders o ON orders_fts.order_id = o.id
                 WHERE orders_fts MATCH ?
                 ORDER BY relevance_score
                 LIMIT ?
@@ -380,6 +381,7 @@ class DatabaseService:
                     'id': row['id'],
                     'filename': row['filename'],
                     'metadata': json.loads(row['metadata_json']),
+                    'raw_text': row['raw_text'],
                     'relevance_score': row['relevance_score']
                 }
                 for row in rows

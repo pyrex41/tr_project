@@ -54,7 +54,7 @@ init : Flags -> Url.Url -> Nav.Key -> ( Model, Cmd Msg )
 init flags url key =
     let
         ( page, pageCmd ) =
-            initPage flags.apiBaseUrl (urlToRoute url)
+            initPage flags.apiBaseUrl url
     in
     ( { key = key
       , url = url
@@ -65,8 +65,11 @@ init flags url key =
     )
 
 
-initPage : String -> Route -> ( Page, Cmd Msg )
-initPage apiBaseUrl route =
+initPage : String -> Url.Url -> ( Page, Cmd Msg )
+initPage apiBaseUrl url =
+    let
+        route = urlToRoute url
+    in
     case route of
         DashboardRoute ->
             let
@@ -79,8 +82,15 @@ initPage apiBaseUrl route =
 
         SearchRoute ->
             let
+                -- Extract query parameter from URL
+                queryParam =
+                    url.query
+                        |> Maybe.andThen (String.split "&" >> List.filter (String.startsWith "q=") >> List.head)
+                        |> Maybe.map (String.dropLeft 2 >> Url.percentDecode >> Maybe.withDefault "")
+                        |> Maybe.withDefault ""
+
                 ( searchModel, searchCmd ) =
-                    Pages.Search.init apiBaseUrl ""
+                    Pages.Search.init apiBaseUrl queryParam
             in
             ( Search searchModel
             , Cmd.map SearchMsg searchCmd
@@ -149,11 +159,8 @@ update msg model =
 
         UrlChanged url ->
             let
-                route =
-                    urlToRoute url
-
                 ( newPage, pageCmd ) =
-                    initPage model.apiBaseUrl route
+                    initPage model.apiBaseUrl url
             in
             ( { model | url = url, page = newPage }
             , pageCmd
@@ -177,7 +184,7 @@ update msg model =
                                         Cmd.none
 
                                     else
-                                        Nav.pushUrl model.key "/search"
+                                        Nav.pushUrl model.key ("/search?q=" ++ Url.percentEncode newDashboardModel.searchQuery)
 
                                 _ ->
                                     Cmd.none
