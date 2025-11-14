@@ -223,20 +223,19 @@ async def semantic_search(request: SearchRequest):
         transformed = []
         for r in results:
             metadata = r.get('metadata', {})
-            # Extract a meaningful snippet from the raw text (first 200 chars)
-            raw_text = r.get('raw_text', '')
-            snippet = raw_text[:200] + "..." if len(raw_text) > 200 else raw_text
+            # Semantic search doesn't include raw_text, use case name as snippet
+            case_name = metadata.get('case_name', r.get('filename', 'Unknown Case'))
 
             transformed.append({
-                "order_id": r['id'],
-                "case_name": metadata.get('case_name', r['filename']),
-                "snippet": snippet if snippet.strip() else metadata.get('case_name', r['filename']),
+                "order_id": r['order_id'],  # Semantic search uses 'order_id' not 'id'
+                "case_name": case_name,
+                "snippet": case_name,  # Use case name as snippet for semantic search
                 "score": r.get('similarity_score', 0.0),
                 "insights": None,
                 "metadata": {
                     "date": metadata.get('date'),
                     "expert_names": metadata.get('expert_names', []),
-                    "ruling_type": None  # Could be "excluded" or "admitted" if we parse it
+                    "ruling_type": None
                 }
             })
 
