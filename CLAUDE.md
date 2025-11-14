@@ -1,5 +1,7 @@
 # Claude Code Instructions - Legal Analysis Backend
 
+NEVER USE EMOJIS
+
 ## Project Overview
 
 This is a **Legal Document Analysis System** that processes and analyzes Judge Boyle's expert witness rulings. The system combines traditional text search with AI-powered semantic analysis to provide deep insights into judicial patterns and expert testimony evaluation.
@@ -17,7 +19,7 @@ This is a **Legal Document Analysis System** that processes and analyzes Judge B
 - **AI Models:**
   - GPT-5.1 (`reasoning_effort='max'`) for deep legal analysis
   - sentence-transformers (all-MiniLM-L6-v2) for embeddings
-- **Frontend:** React + TypeScript (separate, communicates via REST API)
+- **Frontend:** Elm (functional, type-safe) communicates via REST API
 
 ### Project Structure
 ```
@@ -40,6 +42,14 @@ backend/
 │   └── logging_config.py  # Structured logging
 ├── main.py                # FastAPI application entry point
 └── .env                   # Environment variables
+
+frontend/
+├── src/
+│   ├── Main.elm           # Application entry point
+│   ├── Pages/             # Dashboard, Search, OrderDetail, Orders
+│   └── Components/        # Reusable UI components
+├── public/
+└── vite.config.js
 
 data/
 └── orders.db             # SQLite database (generated)
@@ -304,7 +314,7 @@ The project is complete when:
 - **Processing Time:** <45 minutes for initial data load
 - **Total Cost:** $3-4 in OpenAI API calls
 - **Database Size:** ~50-100MB with embeddings
-- **Frontend:** Separate React app (not in scope for backend tasks)
+- **Frontend:** Elm frontend in separate directory
 
 ---
 
