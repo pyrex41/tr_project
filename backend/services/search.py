@@ -6,11 +6,14 @@ Combines FTS5 keyword search with vector semantic search for comprehensive retri
 
 import logging
 import struct
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional, Tuple, TYPE_CHECKING
 import numpy as np
 
-from db.database import DatabaseService
-from services.embeddings import EmbeddingService
+from backend.db.database import DatabaseService
+
+# Import for type checking only - actual instance can be any embedding service
+if TYPE_CHECKING:
+    from backend.services.embeddings import EmbeddingService
 
 logger = logging.getLogger(__name__)
 
@@ -18,17 +21,20 @@ logger = logging.getLogger(__name__)
 class SearchService:
     """Service for hybrid search combining keyword and semantic search."""
 
-    def __init__(self, db_service: DatabaseService, embedding_service: EmbeddingService):
+    def __init__(self, db_service: DatabaseService, embedding_service: Optional["EmbeddingService"] = None):
         """
         Initialize search service.
 
         Args:
             db_service: Database service instance
-            embedding_service: Embedding service instance
+            embedding_service: Embedding service instance (optional, None disables semantic search)
         """
         self.db = db_service
         self.embedding_service = embedding_service
-        logger.info("Search service initialized")
+        if embedding_service is None:
+            logger.warning("Search service initialized WITHOUT embedding service (semantic search disabled)")
+        else:
+            logger.info("Search service initialized with embedding service")
 
     def keyword_search(
         self,
@@ -76,6 +82,11 @@ class SearchService:
             List of matching results with similarity scores
         """
         logger.info(f"Semantic search: '{query}' (type={search_type}, limit={limit})")
+
+        # Check if embedding service is available
+        if self.embedding_service is None:
+            logger.error("Semantic search requested but embedding service not available")
+            raise RuntimeError("Semantic search is disabled in this deployment (no ML dependencies)")
 
         # Generate embedding for query
         query_embedding = self.embedding_service.generate_embedding(query)

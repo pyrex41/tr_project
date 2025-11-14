@@ -6,16 +6,25 @@ Main application entry point with CORS, routes, and error handling.
 
 import json
 import logging
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 from pathlib import Path
 from pydantic import BaseModel
 
-from db.database import DatabaseService
-from services.embeddings import EmbeddingService
-from services.search import SearchService
+from backend.db.database import DatabaseService
+from backend.services.search import SearchService
+
+# Try to import local embeddings, fall back to OpenAI
+try:
+    from backend.services.embeddings import EmbeddingService
+    USE_LOCAL_EMBEDDINGS = True
+except ImportError:
+    from backend.services.embeddings_openai import OpenAIEmbeddingService as EmbeddingService
+    USE_LOCAL_EMBEDDINGS = False
 
 # Configure logging
 logging.basicConfig(
@@ -44,12 +53,30 @@ async def lifespan(app: FastAPI):
 
     # Startup
     logger.info("Starting Legal Analysis API...")
-    db_path = Path(__file__).parent.parent / "data" / "orders.db"
+
+    # Get database path from environment variable or use default
+    db_path_env = os.getenv('DATABASE_PATH', 'data/orders.db')
+    if not os.path.isabs(db_path_env):
+        # Relative path - resolve relative to project root
+        db_path = Path(__file__).parent.parent / db_path_env
+    else:
+        # Absolute path - use as-is
+        db_path = Path(db_path_env)
+
+    logger.info(f"Using database at: {db_path}")
     db_service = DatabaseService(str(db_path))
     logger.info("Database service initialized")
 
-    embedding_service = EmbeddingService()
-    logger.info("Embedding service initialized")
+    # Initialize embedding service
+    try:
+        embedding_service = EmbeddingService()
+        if USE_LOCAL_EMBEDDINGS:
+            logger.info("Using LOCAL embedding service (sentence-transformers)")
+        else:
+            logger.info("Using OPENAI embedding service (text-embedding-3-small)")
+    except Exception as e:
+        logger.warning(f"Embedding service not available (semantic search disabled): {e}")
+        embedding_service = None
 
     search_service = SearchService(db_service, embedding_service)
     logger.info("Search service initialized")
@@ -74,11 +101,18 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5173",  # Vite dev server
         "http://localhost:3000",  # Alternative dev port
+        "*",  # Allow all origins in production (or set to your domain)
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mount static files (built frontend) if static directory exists
+static_dir = Path(__file__).parent.parent / "static"
+if static_dir.exists():
+    logger.info(f"Mounting static files from {static_dir}")
+    app.mount("/assets", StaticFiles(directory=str(static_dir / "assets")), name="assets")
 
 
 # Health check endpoint
@@ -498,10 +532,18 @@ async def get_insights():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# Root endpoint
+# Root endpoint - serve frontend or API info
 @app.get("/")
 async def root():
-    """Root endpoint with API information."""
+    """Root endpoint - serve frontend if available, otherwise API info."""
+    static_dir = Path(__file__).parent.parent / "static"
+    index_path = static_dir / "index.html"
+
+    # If static files exist, serve the frontend
+    if index_path.exists():
+        return FileResponse(str(index_path))
+
+    # Otherwise, return API information
     return {
         "name": "Legal Analysis API",
         "version": "1.0.0",
@@ -517,6 +559,28 @@ async def root():
             "insights": "/api/insights"
         }
     }
+
+
+# Catch-all route for SPA frontend (must be last)
+@app.get("/{full_path:path}")
+async def serve_frontend(full_path: str):
+    """
+    Catch-all route to serve frontend for client-side routing.
+    This must be the last route defined.
+    """
+    # Skip API routes
+    if full_path.startswith("api/") or full_path.startswith("health"):
+        raise HTTPException(status_code=404, detail="API endpoint not found")
+
+    static_dir = Path(__file__).parent.parent / "static"
+    index_path = static_dir / "index.html"
+
+    # Serve index.html for all non-API routes (SPA routing)
+    if index_path.exists():
+        return FileResponse(str(index_path))
+
+    # If no static files, return 404
+    raise HTTPException(status_code=404, detail="Not found")
 
 
 if __name__ == "__main__":

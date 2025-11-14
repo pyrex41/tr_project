@@ -1,0 +1,88 @@
+# Elm
+elm-stuff/
+
+# Node
+node_modules/
+
+# Build output
+dist/
+
+# Environment variables (will be set in Fly.io)
+.env
+.env.local
+.env.*.local
+backend/.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+env/
+
+# Data and logs (database will be in volume)
+data/*.db
+data/*.json
+data/*.log
+*.log
+log_docs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Git
+.git/
+.gitignore
+.github/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Deployment scripts (not needed in container)
+deploy.sh
+upload_data.sh
+DEPLOYMENT.md
+README.md
+
+# Test files
+test_*.py
+*_test.py
+tests/
+
+# Source PDFs and extracted data
+Jane_Boyle_Expert_Witness_Orders_19/
+extract_pdfs.py
+repomix-output.xml
+
+# Task master and project management
+.taskmaster/
+.zed/
+.mcp.json

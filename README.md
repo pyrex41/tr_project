@@ -2,6 +2,8 @@
 
 A modern, type-safe Elm frontend for analyzing legal documents with AI-powered insights.
 
+**🌐 Live Demo:** [https://tr-project.fly.dev](https://tr-project.fly.dev)
+
 ## 🚀 Features
 
 ### **Dashboard**
