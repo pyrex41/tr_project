@@ -83,8 +83,14 @@ update msg model =
 view : Model -> (Msg -> msg) -> (String -> msg) -> Html msg
 view model toMsg onNavigate =
     div []
-        [ h1 [ class "text-4xl font-bold text-blue-900 mb-8" ]
-            [ text "Dashboard" ]
+        [ div [ class "mb-8" ]
+            [ h1 [ class "text-4xl font-bold text-blue-900 mb-2" ]
+                [ text "Judge Jane J. Boyle" ]
+            , p [ class "text-xl text-gray-600" ]
+                [ text "Expert Witness Ruling Patterns & Discovery Insights" ]
+            , p [ class "text-sm text-gray-500 mt-2" ]
+                [ text "U.S. District Court, Northern District of Texas - 19 Expert Orders Analyzed" ]
+            ]
         , Html.map toMsg (viewSearchBar model)
         , viewStats model
         , viewInsights model
@@ -100,7 +106,7 @@ viewSearchBar model =
         , onQueryChange = SearchQueryChanged
         , onSearchTypeChange = SearchTypeChanged
         , onSubmit = SearchSubmitted
-        , placeholder = "Quick search orders..."
+        , placeholder = "Quick search: Daubert standards, expert qualifications, methodology..."
         }
 
 

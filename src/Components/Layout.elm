@@ -17,11 +17,15 @@ view config content =
         [ header [ class "bg-blue-900 text-white shadow-lg" ]
             [ div [ class "container mx-auto px-4 py-4" ]
                 [ div [ class "flex items-center justify-between" ]
-                    [ h1 [ class "text-2xl font-bold" ]
-                        [ text "Legal Document Analysis" ]
+                    [ div []
+                        [ h1 [ class "text-2xl font-bold" ]
+                            [ text "Know Your Judge: Discovery & Expert Patterns" ]
+                        , p [ class "text-blue-200 text-sm mt-1" ]
+                            [ text "Analyzing Expert Witness Orders from Judge Jane J. Boyle" ]
+                        ]
                     , nav [ class "flex space-x-6" ]
-                        [ navLink config "Dashboard" "/"
-                        , navLink config "Search" "/search"
+                        [ navLink config "Overview" "/"
+                        , navLink config "Search Orders" "/search"
                         ]
                     ]
                 ]
@@ -31,7 +35,7 @@ view config content =
         , footer [ class "bg-gray-800 text-white mt-12" ]
             [ div [ class "container mx-auto px-4 py-6 text-center" ]
                 [ p [ class "text-sm" ]
-                    [ text "Legal Document Analysis System - 2025" ]
+                    [ text "Westlaw Know Your Judge - Discovery & Expert Patterns PoC - 2025" ]
                 ]
             ]
         ]

@@ -107,8 +107,12 @@ performSearch apiBaseUrl searchType query =
 view : Model -> (Msg -> msg) -> (Int -> msg) -> Html msg
 view model toMsg onOrderSelect =
     div []
-        [ h1 [ class "text-4xl font-bold text-blue-900 mb-8" ]
-            [ text "Search Legal Documents" ]
+        [ div [ class "mb-8" ]
+            [ h1 [ class "text-4xl font-bold text-blue-900 mb-2" ]
+                [ text "Search Expert Orders" ]
+            , p [ class "text-gray-600" ]
+                [ text "Search Judge Boyle's expert witness rulings by methodology, Daubert standards, or expert qualifications" ]
+            ]
         , Html.map toMsg (viewSearchBar model)
         , viewResults model toMsg onOrderSelect
         ]
@@ -122,7 +126,7 @@ viewSearchBar model =
         , onQueryChange = QueryChanged
         , onSearchTypeChange = SearchTypeChanged
         , onSubmit = SearchSubmitted
-        , placeholder = "Search orders by content, citations, expert names..."
+        , placeholder = "Search by Daubert, expert testimony, methodology, reliability..."
         }
 
 
