@@ -100,6 +100,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",  # Vite dev server
+        "http://localhost:5174",  # Vite dev server (alt port 1)
+        "http://localhost:5175",  # Vite dev server (alt port 2)
+        "http://localhost:5176",  # Vite dev server (alt port 3)
         "http://localhost:3000",  # Alternative dev port
         "*",  # Allow all origins in production (or set to your domain)
     ],

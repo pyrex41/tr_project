@@ -21,13 +21,13 @@ type alias Model =
     }
 
 
-init : String -> String -> ( Model, Cmd Msg )
-init apiBaseUrl initialQuery =
+init : String -> String -> SearchType -> ( Model, Cmd Msg )
+init apiBaseUrl initialQuery initialSearchType =
     let
         model =
             { apiBaseUrl = apiBaseUrl
             , query = initialQuery
-            , searchType = Keyword
+            , searchType = initialSearchType
             , results = NotAsked
             , hasSearched = False
             }
@@ -37,7 +37,7 @@ init apiBaseUrl initialQuery =
 
     else
         ( { model | results = Loading, hasSearched = True }
-        , performSearch apiBaseUrl Keyword initialQuery
+        , performSearch apiBaseUrl initialSearchType initialQuery
         )
 
 

@@ -8,6 +8,7 @@ import Html.Attributes exposing (..)
 import Pages.Dashboard
 import Pages.OrderDetail
 import Pages.Search
+import Types exposing (SearchType(..))
 import Url
 import Url.Parser as Parser exposing ((</>), Parser, int, oneOf, top)
 
@@ -97,8 +98,23 @@ initPage apiBaseUrl url =
                                 |> Maybe.andThen Url.percentDecode
                                 |> Maybe.withDefault ""
 
+                -- Extract search type parameter from URL
+                searchTypeParam =
+                    case url.query of
+                        Nothing ->
+                            Keyword
+
+                        Just queryString ->
+                            queryString
+                                |> String.split "&"
+                                |> List.filter (String.startsWith "type=")
+                                |> List.head
+                                |> Maybe.map (String.dropLeft 5)
+                                |> Maybe.map (\t -> if t == "semantic" then Semantic else Keyword)
+                                |> Maybe.withDefault Keyword
+
                 ( searchModel, searchCmd ) =
-                    Pages.Search.init apiBaseUrl queryParam
+                    Pages.Search.init apiBaseUrl queryParam searchTypeParam
             in
             ( Search searchModel
             , Cmd.map SearchMsg searchCmd
@@ -192,7 +208,13 @@ update msg model =
                                         Cmd.none
 
                                     else
-                                        Nav.pushUrl model.key ("/search?q=" ++ Url.percentEncode newDashboardModel.searchQuery)
+                                        let
+                                            searchTypeStr =
+                                                case newDashboardModel.searchType of
+                                                    Keyword -> "keyword"
+                                                    Semantic -> "semantic"
+                                        in
+                                        Nav.pushUrl model.key ("/search?q=" ++ Url.percentEncode newDashboardModel.searchQuery ++ "&type=" ++ searchTypeStr)
 
                                 Pages.Dashboard.NavigateToOrder orderId ->
                                     Nav.pushUrl model.key ("/order/" ++ String.fromInt orderId)
@@ -227,8 +249,14 @@ update msg model =
                                     if String.isEmpty newSearchModel.query then
                                         Cmd.none
                                     else
-                                        -- Update URL to preserve search query for back button
-                                        Nav.replaceUrl model.key ("/search?q=" ++ Url.percentEncode newSearchModel.query)
+                                        -- Update URL to preserve search query and type for back button
+                                        let
+                                            searchTypeStr =
+                                                case newSearchModel.searchType of
+                                                    Keyword -> "keyword"
+                                                    Semantic -> "semantic"
+                                        in
+                                        Nav.replaceUrl model.key ("/search?q=" ++ Url.percentEncode newSearchModel.query ++ "&type=" ++ searchTypeStr)
 
                                 _ ->
                                     Cmd.none
