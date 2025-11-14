@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 from pathlib import Path
+from pydantic import BaseModel
 
 from db.database import DatabaseService
 from services.embeddings import EmbeddingService
@@ -21,6 +22,12 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Pydantic models for API requests
+class SearchRequest(BaseModel):
+    query: str
+    page: int = 1
+    limit: int = 10
 
 # Global services
 db_service: DatabaseService = None
@@ -154,27 +161,42 @@ async def get_order(order_id: int):
 
 
 # Keyword search
-@app.get("/api/search/keyword")
-async def keyword_search(q: str, limit: int = 10):
+@app.post("/api/search/keyword")
+async def keyword_search(request: SearchRequest):
     """
     Perform FTS5 keyword search.
 
     Args:
-        q: Search query
-        limit: Maximum results (default: 10)
+        request: SearchRequest with query, page, and limit
     """
     try:
-        if not q or len(q.strip()) == 0:
-            raise HTTPException(status_code=400, detail="Query parameter 'q' is required")
+        if not request.query or len(request.query.strip()) == 0:
+            raise HTTPException(status_code=400, detail="Query is required")
 
-        results = search_service.keyword_search(q, limit=limit)
-        return {
-            "success": True,
-            "query": q,
-            "search_type": "keyword",
-            "count": len(results),
-            "data": results
-        }
+        results = search_service.keyword_search(request.query, limit=request.limit)
+
+        # Transform results to match frontend expectations
+        transformed = []
+        for r in results:
+            metadata = r.get('metadata', {})
+            # Extract a meaningful snippet from the raw text (first 200 chars)
+            raw_text = r.get('raw_text', '')
+            snippet = raw_text[:200] + "..." if len(raw_text) > 200 else raw_text
+
+            transformed.append({
+                "order_id": r['id'],
+                "case_name": metadata.get('case_name', r['filename']),
+                "snippet": snippet if snippet.strip() else metadata.get('case_name', r['filename']),
+                "score": abs(r.get('relevance_score', 0.0)),
+                "insights": None,
+                "metadata": {
+                    "date": metadata.get('date'),
+                    "expert_names": metadata.get('expert_names', []),
+                    "ruling_type": None  # Could be "excluded" or "admitted" if we parse it
+                }
+            })
+
+        return transformed
     except HTTPException:
         raise
     except Exception as e:
@@ -183,31 +205,42 @@ async def keyword_search(q: str, limit: int = 10):
 
 
 # Semantic search
-@app.get("/api/search/semantic")
-async def semantic_search(q: str, limit: int = 10, search_type: str = "order"):
+@app.post("/api/search/semantic")
+async def semantic_search(request: SearchRequest):
     """
     Perform semantic vector search.
 
     Args:
-        q: Search query
-        limit: Maximum results (default: 10)
-        search_type: "order" for full orders, "chunk" for analysis sections
+        request: SearchRequest with query, page, and limit
     """
     try:
-        if not q or len(q.strip()) == 0:
-            raise HTTPException(status_code=400, detail="Query parameter 'q' is required")
+        if not request.query or len(request.query.strip()) == 0:
+            raise HTTPException(status_code=400, detail="Query is required")
 
-        if search_type not in ["order", "chunk"]:
-            raise HTTPException(status_code=400, detail="search_type must be 'order' or 'chunk'")
+        results = search_service.semantic_search(request.query, limit=request.limit, search_type="order")
 
-        results = search_service.semantic_search(q, limit=limit, search_type=search_type)
-        return {
-            "success": True,
-            "query": q,
-            "search_type": f"semantic_{search_type}",
-            "count": len(results),
-            "data": results
-        }
+        # Transform results to match frontend expectations
+        transformed = []
+        for r in results:
+            metadata = r.get('metadata', {})
+            # Extract a meaningful snippet from the raw text (first 200 chars)
+            raw_text = r.get('raw_text', '')
+            snippet = raw_text[:200] + "..." if len(raw_text) > 200 else raw_text
+
+            transformed.append({
+                "order_id": r['id'],
+                "case_name": metadata.get('case_name', r['filename']),
+                "snippet": snippet if snippet.strip() else metadata.get('case_name', r['filename']),
+                "score": r.get('similarity_score', 0.0),
+                "insights": None,
+                "metadata": {
+                    "date": metadata.get('date'),
+                    "expert_names": metadata.get('expert_names', []),
+                    "ruling_type": None  # Could be "excluded" or "admitted" if we parse it
+                }
+            })
+
+        return transformed
     except HTTPException:
         raise
     except Exception as e:
