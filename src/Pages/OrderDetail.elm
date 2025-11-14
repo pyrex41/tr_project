@@ -1,6 +1,7 @@
 module Pages.OrderDetail exposing (Model, Msg(..), init, update, view)
 
 import Api
+import Components.KeyCiteBadge
 import Components.QuoteCard
 import Html exposing (..)
 import Html.Attributes exposing (..)
@@ -287,6 +288,18 @@ viewCitationsTab order =
     div []
         [ h2 [ class "text-2xl font-bold text-gray-800 mb-4" ]
             [ text ("Citations (" ++ String.fromInt (List.length order.citations) ++ ")") ]
+        , div [ class "bg-blue-50 border-l-4 border-blue-500 p-4 mb-6" ]
+            [ div [ class "flex items-start" ]
+                [ div [ class "flex-shrink-0" ]
+                    [ span [ class "text-blue-600 text-xl mr-3" ] [ text "ℹ" ] ]
+                , div []
+                    [ p [ class "text-sm font-semibold text-blue-800 mb-1" ]
+                        [ text "KeyCite Demo" ]
+                    , p [ class "text-sm text-blue-700" ]
+                        [ text "KeyCite status badges shown are demonstration data only. Real Westlaw KeyCite integration requires API access." ]
+                    ]
+                ]
+            ]
         , if List.isEmpty order.citations then
             div [ class "bg-gray-50 rounded-lg p-8 text-center" ]
                 [ p [ class "text-gray-500" ] [ text "No citations found" ] ]
@@ -300,12 +313,19 @@ viewCitationsTab order =
 viewCitation : Citation -> Html msg
 viewCitation citation =
     div [ class "bg-white rounded-lg shadow-md p-6" ]
-        [ div [ class "flex items-start justify-between mb-2" ]
+        [ div [ class "flex items-start justify-between mb-3" ]
             [ span [ class "text-sm font-semibold text-blue-600 uppercase" ]
                 [ text citation.citationType ]
             ]
-        , p [ class "text-gray-800 font-medium mb-2" ]
+        , p [ class "text-gray-800 font-medium mb-3" ]
             [ text citation.text ]
+        , case citation.keyCiteStatus of
+            Just status ->
+                div [ class "mb-3" ]
+                    [ Components.KeyCiteBadge.view status ]
+
+            Nothing ->
+                text ""
         , case citation.context of
             Just context ->
                 p [ class "text-sm text-gray-600 italic" ]

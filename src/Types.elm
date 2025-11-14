@@ -165,6 +165,14 @@ type alias Citation =
     { text : String
     , citationType : String
     , context : Maybe String
+    , keyCiteStatus : Maybe KeyCiteStatus
+    }
+
+
+type alias KeyCiteStatus =
+    { flag : String  -- "red", "yellow", "blue", "green"
+    , treatment : String  -- "overruled", "questioned", "distinguished", "good_law"
+    , citingCases : Int
     }
 
 
@@ -212,6 +220,15 @@ citationDecoder =
         |> required "text" string
         |> required "type" string
         |> optional "context" (nullable string) Nothing
+        |> optional "keycite_status" (nullable keyCiteStatusDecoder) Nothing
+
+
+keyCiteStatusDecoder : Decoder KeyCiteStatus
+keyCiteStatusDecoder =
+    Decode.succeed KeyCiteStatus
+        |> required "flag" string
+        |> required "treatment" string
+        |> required "citing_cases" int
 
 
 quoteDecoder : Decoder Quote
