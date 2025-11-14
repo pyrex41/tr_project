@@ -625,107 +625,107 @@
             "testStrategy": "End-to-end testing: perform searches, verify insights if added, test retry on failures, and load test for latency and reliability."
           }
         ]
-    },
-    {
-      "id": 11,
-      "title": "Implement Insights Generation and Endpoint",
-      "description": "Develop the cross-order insights generation logic and implement the GET /api/insights endpoint to provide AI-synthesized patterns from all processed orders.",
-      "details": "Create a function to analyze all orders and generate insights based on common patterns (e.g., exclusion grounds, expert types). Implement GET /api/insights in routes.py using the Insight model from API PRD. Cache results if needed for performance. Ensure insights include type, description, evidence (order IDs), confidence, and strength.",
-      "prdReferences": {
-        "backend": [
-          "lines 689-725 (Implied in analysis synthesis)"
+      },
+      {
+        "id": 11,
+        "title": "Implement Insights Generation and Endpoint",
+        "description": "Develop the cross-order insights generation logic and implement the GET /api/insights endpoint to provide AI-synthesized patterns from all processed orders.",
+        "details": "Create a function to analyze all orders and generate insights based on common patterns (e.g., exclusion grounds, expert types). Implement GET /api/insights in routes.py using the Insight model from API PRD. Cache results if needed for performance. Ensure insights include type, description, evidence (order IDs), confidence, and strength.",
+        "prdReferences": {
+          "backend": [
+            "lines 689-725 (Implied in analysis synthesis)"
+          ],
+          "api-contract": [
+            "lines 262-270 (Insight model)",
+            "lines 633-688 (GET /api/insights endpoint)"
+          ]
+        },
+        "priority": "high",
+        "dependencies": [
+          10
         ],
-        "api-contract": [
-          "lines 262-270 (Insight model)",
-          "lines 633-688 (GET /api/insights endpoint)"
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Develop cross-order insights generation logic",
+            "description": "Create a service function to query all orders, identify patterns (e.g., common exclusion grounds, ruling tendencies by expert type), and generate Insight objects.",
+            "dependencies": [],
+            "details": "In a new service or extend DatabaseService, implement generate_cross_order_insights() that aggregates data from orders table (e.g., count by ruling_type, expert_field, exclusion_grounds). Use simple rules or basic stats to create insights like 'High exclusion rate for non-peer-reviewed methodologies (80% confidence)'. Return list of Insight dicts matching API model.",
+            "status": "pending"
+          },
+          {
+            "id": 2,
+            "title": "Implement GET /api/insights endpoint",
+            "description": "Add the insights endpoint to routes.py, calling the generation logic and returning formatted response.",
+            "dependencies": [
+              1
+            ],
+            "details": "Define GET /api/insights using APIRouter, fetch insights via the service, and return InsightsResponse model. Include error handling for database queries. Target <200ms response time.",
+            "status": "pending"
+          }
         ]
       },
-      "priority": "high",
-      "dependencies": [
-        10
-      ],
-      "status": "pending",
-      "subtasks": [
-        {
-          "id": 1,
-          "title": "Develop cross-order insights generation logic",
-          "description": "Create a service function to query all orders, identify patterns (e.g., common exclusion grounds, ruling tendencies by expert type), and generate Insight objects.",
-          "dependencies": [],
-          "details": "In a new service or extend DatabaseService, implement generate_cross_order_insights() that aggregates data from orders table (e.g., count by ruling_type, expert_field, exclusion_grounds). Use simple rules or basic stats to create insights like 'High exclusion rate for non-peer-reviewed methodologies (80% confidence)'. Return list of Insight dicts matching API model.",
-          "status": "pending"
-        },
-        {
-          "id": 2,
-          "title": "Implement GET /api/insights endpoint",
-          "description": "Add the insights endpoint to routes.py, calling the generation logic and returning formatted response.",
-          "dependencies": [
-            1
+      {
+        "id": 12,
+        "title": "Consolidate Error Handling and Logging",
+        "description": "Implement comprehensive error handling, custom exceptions, and logging across the backend, including API endpoints, services, and processing pipeline.",
+        "details": "Define custom exception classes (e.g., ProcessingError, GPTAnalysisError). Configure structured logging with timestamps, levels, and request IDs. Add try-except blocks in all async functions and endpoints. Integrate with FastAPI's exception handlers for consistent error responses. Ensure logs cover errors, performance metrics, and API requests.",
+        "prdReferences": {
+          "backend": [
+            "lines 854-891 (Section 6: Error Handling & Logging)"
           ],
-          "details": "Define GET /api/insights using APIRouter, fetch insights via the service, and return InsightsResponse model. Include error handling for database queries. Target <200ms response time.",
-          "status": "pending"
-        }
-      ]
-    },
-    {
-      "id": 12,
-      "title": "Consolidate Error Handling and Logging",
-      "description": "Implement comprehensive error handling, custom exceptions, and logging across the backend, including API endpoints, services, and processing pipeline.",
-      "details": "Define custom exception classes (e.g., ProcessingError, GPTAnalysisError). Configure structured logging with timestamps, levels, and request IDs. Add try-except blocks in all async functions and endpoints. Integrate with FastAPI's exception handlers for consistent error responses. Ensure logs cover errors, performance metrics, and API requests.",
-      "prdReferences": {
-        "backend": [
-          "lines 854-891 (Section 6: Error Handling & Logging)"
+          "api-contract": [
+            "lines 692-758 (Error Handling section)"
+          ]
+        },
+        "priority": "medium",
+        "dependencies": [
+          11
         ],
-        "api-contract": [
-          "lines 692-758 (Error Handling section)"
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Define custom exception classes and logging configuration",
+            "description": "Create exception hierarchy and set up logging module with file handlers and formatters.",
+            "dependencies": [],
+            "details": "In a new utils/exceptions.py, define base ProcessingError and subclasses like DatabaseError, APIError. In main.py or a config module, configure logging.basicConfig with FileHandler to logs/app.log, including %(asctime)s, %(levelname)s, %(message)s format.",
+            "status": "pending"
+          },
+          {
+            "id": 2,
+            "title": "Integrate error handling in services and pipeline",
+            "description": "Add try-except blocks in processing stages (parser, analysis, embeddings) and raise custom exceptions on failures.",
+            "dependencies": [
+              1
+            ],
+            "details": "Wrap key functions in services/parser.py, deep_analysis.py, etc., with try-except to catch and re-raise as custom errors (e.g., GPTAnalysisError). Log exceptions with logger.error(f'Error in {function}: {str(e)}'). Ensure pipeline in process_all_orders.py handles individual failures without stopping entirely.",
+            "status": "pending"
+          },
+          {
+            "id": 3,
+            "title": "Add error handling and logging to API endpoints",
+            "description": "Implement FastAPI exception handlers and logging middleware for all routes.",
+            "dependencies": [
+              1
+            ],
+            "details": "In api/routes.py or main.py, use @app.exception_handler for HTTPException and custom errors, returning JSON {'error': {'code': code, 'message': msg}}. Add logging in endpoint functions for incoming requests (logger.info(f'{request.method} {request.url}')) and errors. Include performance logging like elapsed time for searches.",
+            "status": "pending"
+          }
         ]
-      },
-      "priority": "medium",
-      "dependencies": [
-        11
-      ],
-      "status": "pending",
-      "subtasks": [
-        {
-          "id": 1,
-          "title": "Define custom exception classes and logging configuration",
-          "description": "Create exception hierarchy and set up logging module with file handlers and formatters.",
-          "dependencies": [],
-          "details": "In a new utils/exceptions.py, define base ProcessingError and subclasses like DatabaseError, APIError. In main.py or a config module, configure logging.basicConfig with FileHandler to logs/app.log, including %(asctime)s, %(levelname)s, %(message)s format.",
-          "status": "pending"
-        },
-        {
-          "id": 2,
-          "title": "Integrate error handling in services and pipeline",
-          "description": "Add try-except blocks in processing stages (parser, analysis, embeddings) and raise custom exceptions on failures.",
-          "dependencies": [
-            1
-          ],
-          "details": "Wrap key functions in services/parser.py, deep_analysis.py, etc., with try-except to catch and re-raise as custom errors (e.g., GPTAnalysisError). Log exceptions with logger.error(f'Error in {function}: {str(e)}'). Ensure pipeline in process_all_orders.py handles individual failures without stopping entirely.",
-          "status": "pending"
-        },
-        {
-          "id": 3,
-          "title": "Add error handling and logging to API endpoints",
-          "description": "Implement FastAPI exception handlers and logging middleware for all routes.",
-          "dependencies": [
-            1
-          ],
-          "details": "In api/routes.py or main.py, use @app.exception_handler for HTTPException and custom errors, returning JSON {'error': {'code': code, 'message': msg}}. Add logging in endpoint functions for incoming requests (logger.info(f'{request.method} {request.url}')) and errors. Include performance logging like elapsed time for searches.",
-          "status": "pending"
-        }
-      ]
+      }
+    ],
+    "metadata": {
+      "created": "2025-11-14T15:41:53.970Z",
+      "updated": "2025-11-14T17:00:00.000Z",
+      "description": "Tasks for master context - Updated with PRD line references"
     }
-  ],
-  "metadata": {
-    "created": "2025-11-14T15:41:53.970Z",
-    "updated": "2025-11-14T17:00:00.000Z",
-    "description": "Tasks for master context - Updated with PRD line references"
-  }
   },
   "frontend": {
     "tasks": [
       {
-        "id": 1,
+        "id": "1",
         "title": "Set up Elm project with Vite and dependencies",
         "description": "Initialize the Elm application using Vite as the build tool, install necessary dependencies including Elm 0.19.1, and configure the project structure as specified in the PRD.",
         "details": "Create a new directory for the frontend project. Initialize npm and install vite, vite-plugin-elm. Set up elm.json with the exact dependencies listed (elm/browser, elm/core, etc.). Create the src/ directory structure with Main.elm, Types.elm, Api.elm, and subdirectories for Components and Pages. Configure vite.config.js for Elm plugin and API proxy to localhost:8000. Ensure package.json scripts for dev, build, and preview are set up.",
@@ -741,7 +741,7 @@
         },
         "priority": "high",
         "dependencies": [],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -750,7 +750,8 @@
             "dependencies": [],
             "details": "Create a new directory named 'frontend' or as specified in the PRD. Navigate into the directory and run 'npm init -y' to initialize npm and generate a basic package.json file. Ensure the directory is clean and ready for further setup.",
             "status": "pending",
-            "testStrategy": "Verify that package.json is created in the directory and contains default fields."
+            "testStrategy": "Verify that package.json is created in the directory and contains default fields.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -761,7 +762,8 @@
             ],
             "details": "Run 'npm install --save-dev vite vite-plugin-elm' to install Vite and its Elm plugin. Then install Elm globally or locally using 'npm install -g elm@0.19.1' or add it as a dev dependency. Confirm installations by checking package.json and running 'elm --version'.",
             "status": "pending",
-            "testStrategy": "Run 'npm list' to confirm vite and vite-plugin-elm are installed. Check 'elm --version' outputs 0.19.1."
+            "testStrategy": "Run 'npm list' to confirm vite and vite-plugin-elm are installed. Check 'elm --version' outputs 0.19.1.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -772,7 +774,8 @@
             ],
             "details": "Create elm.json file in the project root. Populate it with the specified Elm version (0.19.1) and dependencies including elm/browser, elm/core, elm/http, elm/json, elm/url, and any others from the PRD. Ensure the source-directories point to 'src'.",
             "status": "pending",
-            "testStrategy": "Run 'elm make' to verify elm.json is valid and dependencies are resolvable without errors."
+            "testStrategy": "Run 'elm make' to verify elm.json is valid and dependencies are resolvable without errors.",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -783,7 +786,8 @@
             ],
             "details": "Create the src/ directory. Inside it, create Main.elm, Types.elm, Api.elm files. Also create subdirectories: Components/ and Pages/. Ensure the structure matches the PRD, with placeholders or basic module declarations in each file.",
             "status": "pending",
-            "testStrategy": "List the directory structure using 'tree src' or 'ls -R src' and confirm all files and directories are present."
+            "testStrategy": "List the directory structure using 'tree src' or 'ls -R src' and confirm all files and directories are present.",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -794,12 +798,17 @@
             ],
             "details": "Create vite.config.js with the Elm plugin configuration and a proxy to localhost:8000 for API calls. Update package.json scripts to include 'dev': 'vite', 'build': 'vite build', 'preview': 'vite preview'. Ensure the configuration allows for hot reloading and proper Elm compilation.",
             "status": "pending",
-            "testStrategy": "Run 'npm run dev' to start the development server and verify it starts without errors, Elm compiles, and the basic page loads in the browser."
+            "testStrategy": "Run 'npm run dev' to start the development server and verify it starts without errors, Elm compiles, and the basic page loads in the browser.",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 4,
+        "recommendedSubtasks": 1,
+        "expansionPrompt": "Break down the project setup into subtasks such as initializing npm, installing Vite and Elm dependencies, configuring elm.json, setting up the src directory structure, and configuring vite.config.js and package.json scripts.",
+        "updatedAt": "2025-11-14T16:50:03.843Z"
       },
       {
-        "id": 2,
+        "id": "2",
         "title": "Define shared types and models in Types.elm",
         "description": "Implement the shared Elm types and models for the application, including data structures for stats, insights, search results, orders, and other entities used across pages.",
         "details": "In Types.elm, define types such as Stats, Insight, SearchResult, OrderDetail, RemoteData, SearchType, Tab, etc., matching the PRD's specifications. Include decoders for JSON parsing. Ensure types cover all API responses and UI states. Use Elm's type system to enforce correctness.",
@@ -814,9 +823,9 @@
         },
         "priority": "high",
         "dependencies": [
-          1
+          "1"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -827,7 +836,8 @@
             ],
             "details": "In Types.elm, create type aliases and unions for RemoteData (NotAsked, Loading, Success, Failure), SearchType (Keyword, Semantic), and Tab (Dashboard, Search, etc.). Include any necessary imports and ensure type safety.",
             "status": "pending",
-            "testStrategy": "Compile the code and verify no type errors occur with these basic types."
+            "testStrategy": "Compile the code and verify no type errors occur with these basic types.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -838,7 +848,8 @@
             ],
             "details": "Define the Stats type with appropriate fields based on PRD, such as totalOrders, averageValue, etc. Implement a decoder using Json.Decode to parse JSON objects into Stats, handling potential nulls or missing fields.",
             "status": "pending",
-            "testStrategy": "Write a unit test to decode sample JSON data into Stats and assert the fields match expected values."
+            "testStrategy": "Write a unit test to decode sample JSON data into Stats and assert the fields match expected values.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -849,7 +860,8 @@
             ],
             "details": "In Types.elm, define Insight as a record with fields like id, title, description, and confidence. Create a decoder to parse JSON arrays or objects into lists or single Insights, ensuring compatibility with API responses.",
             "status": "pending",
-            "testStrategy": "Test the decoder with mock JSON data to ensure Insights are parsed correctly without errors."
+            "testStrategy": "Test the decoder with mock JSON data to ensure Insights are parsed correctly without errors.",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -860,7 +872,8 @@
             ],
             "details": "Define SearchResult as a record with fields such as orderId, snippet, insights, and score. Include types for filters if needed. Implement decoders using Json.Decode.map and similar functions to handle nested JSON structures.",
             "status": "pending",
-            "testStrategy": "Decode sample search result JSON and verify that the resulting SearchResult matches the expected structure."
+            "testStrategy": "Decode sample search result JSON and verify that the resulting SearchResult matches the expected structure.",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -871,12 +884,17 @@
             ],
             "details": "Define OrderDetail with fields like id, customer, items, total, etc., based on PRD. Add decoders for this and any remaining types. Ensure all types are comprehensive and use Elm's type system for correctness across the application.",
             "status": "pending",
-            "testStrategy": "Compile the full Types.elm and test decoders with comprehensive JSON samples to confirm parsing works for all defined types."
+            "testStrategy": "Compile the full Types.elm and test decoders with comprehensive JSON samples to confirm parsing works for all defined types.",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as this is a focused task on defining types and decoders in a single file.",
+        "updatedAt": "2025-11-14T16:50:04.342Z"
       },
       {
-        "id": 3,
+        "id": "3",
         "title": "Implement API module for backend integration",
         "description": "Create the Api.elm module to handle HTTP requests to the backend, including functions for fetching stats, insights, search results, and order details.",
         "details": "Implement functions like getStats, getInsights, keywordSearch, semanticSearch, getOrderDetail using Elm's Http module. Include proper error handling and JSON decoders. Use the apiBaseUrl flag for configurable endpoints. Follow the PRD's API specifications for URLs and request formats.",
@@ -892,9 +910,9 @@
         },
         "priority": "high",
         "dependencies": [
-          2
+          "2"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -903,7 +921,8 @@
             "dependencies": [],
             "details": "In Api.elm, define each function to construct HTTP requests with the appropriate URLs based on apiBaseUrl flag and PRD specifications. Use Http.get or Http.post as needed, and return Cmd Msg for asynchronous handling. Ensure functions are typed properly and integrate with the application's message system.",
             "status": "pending",
-            "testStrategy": "Mock HTTP responses in unit tests to verify correct request construction and response handling."
+            "testStrategy": "Mock HTTP responses in unit tests to verify correct request construction and response handling.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -914,12 +933,17 @@
             ],
             "details": "Implement error handling using Http.expectJson or similar to manage loading, success, and failure states. Create decoders for Stats, Insights, SearchResults, and OrderDetail types, ensuring they match the expected JSON structure from the backend. Handle decoding errors gracefully and provide meaningful error messages.",
             "status": "pending",
-            "testStrategy": "Test decoders with sample JSON data to ensure accurate parsing. Simulate network errors in tests to verify error handling logic."
+            "testStrategy": "Test decoders with sample JSON data to ensure accurate parsing. Simulate network errors in tests to verify error handling logic.",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Expand into subtasks for implementing individual API functions (e.g., getStats, getInsights, search functions, getOrderDetail) and adding error handling and decoders.",
+        "updatedAt": "2025-11-14T16:50:04.841Z"
       },
       {
-        "id": 4,
+        "id": "4",
         "title": "Create reusable UI components",
         "description": "Develop the core UI components such as Layout, SearchBar, OrderCard, StatCard, Chart, QuoteCard, and Modal, following the design system and Elm architecture.",
         "details": "Implement each component in its respective file under Components/. Use Tailwind CSS for styling as specified. For Chart.elm, create simple SVG-based pie and bar charts without external libraries. Ensure components are modular and reusable. Include event handlers and state management as needed.",
@@ -935,10 +959,10 @@
         },
         "priority": "medium",
         "dependencies": [
-          1,
-          2
+          "1",
+          "2"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -947,7 +971,8 @@
             "dependencies": [],
             "details": "Create Layout.elm for the main application layout structure, including header, sidebar, and content areas. Implement SearchBar.elm with input field, search button, and event handlers for user input and search initiation. Ensure modularity and reusability following Elm architecture.",
             "status": "pending",
-            "testStrategy": "Render components in isolation and verify layout responsiveness and search input functionality."
+            "testStrategy": "Render components in isolation and verify layout responsiveness and search input functionality.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -956,7 +981,8 @@
             "dependencies": [],
             "details": "Implement OrderCard.elm, StatCard.elm, and QuoteCard.elm with Tailwind styling for displaying order, stat, and quote information. For Chart.elm, create simple SVG-based pie and bar charts without external libraries. Include event handlers for interactivity like copying quotes or chart interactions.",
             "status": "pending",
-            "testStrategy": "Test rendering of each component with sample data, verify SVG chart accuracy, and check event handling for user interactions."
+            "testStrategy": "Test rendering of each component with sample data, verify SVG chart accuracy, and check event handling for user interactions.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -965,12 +991,17 @@
             "dependencies": [],
             "details": "Implement Modal.elm as a reusable overlay component with Tailwind CSS for styling. Include event handlers for opening, closing, and content interactions. Ensure it integrates with Elm state management for showing/hiding based on application state.",
             "status": "pending",
-            "testStrategy": "Render the modal in different states (open/closed) and test close events and overlay clicks for proper dismissal."
+            "testStrategy": "Render the modal in different states (open/closed) and test close events and overlay clicks for proper dismissal.",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Break into subtasks for each major component: Layout, SearchBar, OrderCard, StatCard, Chart (with SVG implementation), QuoteCard, and Modal, including styling and event handling.",
+        "updatedAt": "2025-11-14T16:50:05.347Z"
       },
       {
-        "id": 5,
+        "id": "5",
         "title": "Implement routing and main application structure",
         "description": "Set up the main Elm application with routing using elm/url and elm/browser, handling navigation between Dashboard, Search, OrderDetail, and NotFound pages.",
         "details": "In Main.elm, define the Model as a union type for different pages, implement init, update, and view functions with proper routing logic. Use Url.Parser for route matching. Integrate the Layout component for header and navigation. Ensure flags include apiBaseUrl.",
@@ -986,10 +1017,10 @@
         },
         "priority": "high",
         "dependencies": [
-          2,
-          4
+          "2",
+          "4"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -998,7 +1029,8 @@
             "dependencies": [],
             "details": "In Main.elm, define the Model type as a union type with constructors for each page, such as Dashboard, Search (with query and results), OrderDetail (with order ID and data), and NotFound. Ensure the model includes any shared state like apiBaseUrl from flags.",
             "status": "pending",
-            "testStrategy": "Compile the Elm code and verify no type errors occur when defining the model."
+            "testStrategy": "Compile the Elm code and verify no type errors occur when defining the model.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1009,7 +1041,8 @@
             ],
             "details": "In Main.elm, implement the init function that takes flags (including apiBaseUrl) and initial URL, uses Url.Parser to match routes, and sets the initial page in the model. Handle cases where the URL doesn't match any route by defaulting to NotFound.",
             "status": "pending",
-            "testStrategy": "Run the application and check that it initializes to the correct page based on the starting URL, with apiBaseUrl properly set."
+            "testStrategy": "Run the application and check that it initializes to the correct page based on the starting URL, with apiBaseUrl properly set.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -1020,7 +1053,8 @@
             ],
             "details": "In Main.elm, define the update function with cases for UrlChanged (to update the page based on new URL) and other messages. Use Url.Parser to parse the new URL and switch the model accordingly. Include logic for any shared updates across pages.",
             "status": "pending",
-            "testStrategy": "Manually change the URL in the browser and verify that the page updates correctly without errors."
+            "testStrategy": "Manually change the URL in the browser and verify that the page updates correctly without errors.",
+            "parentId": "undefined"
           },
           {
             "id": 4,
@@ -1032,7 +1066,8 @@
             ],
             "details": "In Main.elm, implement the view function that pattern matches on the model to render the correct page (e.g., Dashboard.view, Search.view, etc.), and wraps it with Layout.view. Ensure the Layout includes navigation links that trigger URL changes.",
             "status": "pending",
-            "testStrategy": "Load the application and check that the layout renders correctly with navigation, and each page view displays as expected."
+            "testStrategy": "Load the application and check that the layout renders correctly with navigation, and each page view displays as expected.",
+            "parentId": "undefined"
           },
           {
             "id": 5,
@@ -1044,12 +1079,17 @@
             ],
             "details": "In Main.elm, define a parser using Url.Parser.oneOf with routes like top (Dashboard), s \"search\" (Search), s \"order\" </> int (OrderDetail), and map NotFound for unmatched. Ensure the application handles flags properly, passing apiBaseUrl to pages that need it.",
             "status": "pending",
-            "testStrategy": "Navigate to different URLs manually and confirm that routes match correctly, showing the right page or NotFound, and that apiBaseUrl is accessible."
+            "testStrategy": "Navigate to different URLs manually and confirm that routes match correctly, showing the right page or NotFound, and that apiBaseUrl is accessible.",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 8,
+        "recommendedSubtasks": 0,
+        "expansionPrompt": "No expansion needed as routing and main structure can be implemented cohesively in Main.elm.",
+        "updatedAt": "2025-11-14T16:50:05.850Z"
       },
       {
-        "id": 6,
+        "id": "6",
         "title": "Implement Dashboard page with stats and insights",
         "description": "Build the Dashboard page displaying statistics, AI-discovered patterns, and charts, including quick search functionality.",
         "details": "In Pages/Dashboard.elm, implement the model, init, update, and view functions as outlined in the PRD. Fetch stats and insights via API. Render stat cards, insight cards, and SVG charts. Handle search input and submission to navigate to Search page.",
@@ -1066,11 +1106,11 @@
         },
         "priority": "medium",
         "dependencies": [
-          3,
-          4,
-          5
+          "3",
+          "4",
+          "5"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1079,7 +1119,8 @@
             "dependencies": [],
             "details": "In Pages/Dashboard.elm, update the model to include fields for stats and insights data. Implement init to trigger API fetches using the Api module (getStats and getInsights). In update, handle loading, success, and error states for these fetches. In view, render stat cards with numerical values and insight cards with pattern descriptions, ensuring proper styling and layout as per PRD.",
             "status": "pending",
-            "testStrategy": "Load the dashboard and verify that API calls are made, data is fetched correctly, and stat/insight cards display accurate information with proper styling. Test error handling by simulating API failures."
+            "testStrategy": "Load the dashboard and verify that API calls are made, data is fetched correctly, and stat/insight cards display accurate information with proper styling. Test error handling by simulating API failures.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1088,12 +1129,17 @@
             "dependencies": [],
             "details": "In Pages/Dashboard.elm, extend the model to include chart data and search query. Use Elm libraries or custom code to render SVG charts based on fetched stats. Implement a search input field in the view, handle input changes and submission in update, and use routing to navigate to the Search page with the query. Ensure charts are interactive if specified in PRD, and search integrates with the main application routing.",
             "status": "pending",
-            "testStrategy": "Load the dashboard and check that charts render correctly with sample data, updating dynamically. Test search by entering queries, submitting, and verifying navigation to the Search page with the query preserved. Ensure charts handle edge cases like no data."
+            "testStrategy": "Load the dashboard and check that charts render correctly with sample data, updating dynamically. Test search by entering queries, submitting, and verifying navigation to the Search page with the query preserved. Ensure charts handle edge cases like no data.",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Expand into subtasks for fetching and rendering stats/insights, implementing charts, and handling search functionality with navigation.",
+        "updatedAt": "2025-11-14T16:50:06.354Z"
       },
       {
-        "id": 7,
+        "id": "7",
         "title": "Implement Search page with keyword and semantic search",
         "description": "Develop the Search page to display search results based on user queries, including filters and result cards.",
         "details": "In Pages/Search.elm, set up the model for query, search type, results, and filters. Implement search logic for keyword and semantic modes. Render search bar, loading states, and result cards with links to order details. Handle filter changes.",
@@ -1109,11 +1155,11 @@
         },
         "priority": "medium",
         "dependencies": [
-          3,
-          4,
-          5
+          "3",
+          "4",
+          "5"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1124,7 +1170,8 @@
             ],
             "details": "In the Search model, add fields for query string, search type (keyword or semantic), and results list. Implement update functions to trigger API calls using keywordSearch or semanticSearch from Api.elm. Handle search initiation on user input or filter changes, ensuring proper state updates for loading and results.",
             "status": "pending",
-            "testStrategy": "Test with various queries in both modes, verifying API calls are made correctly and results are stored in model. Check state transitions from pending to loaded."
+            "testStrategy": "Test with various queries in both modes, verifying API calls are made correctly and results are stored in model. Check state transitions from pending to loaded.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1136,12 +1183,17 @@
             ],
             "details": "In Pages/Search.elm view function, render a search input bar with type selector (keyword/semantic), filter options (e.g., date range, category), and a list of result cards linking to order details. Implement loading spinner during search and error messages for failed requests. Ensure filters update the model and trigger re-searches.",
             "status": "pending",
-            "testStrategy": "Verify UI renders correctly with mock data. Test filter changes update results, loading states appear during searches, and errors display appropriate messages. Check navigation to order details from result cards."
+            "testStrategy": "Verify UI renders correctly with mock data. Test filter changes update results, loading states appear during searches, and errors display appropriate messages. Check navigation to order details from result cards.",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Break into subtasks for implementing search logic (keyword vs. semantic), rendering results and filters, and handling loading/error states.",
+        "updatedAt": "2025-11-14T16:50:06.883Z"
       },
       {
-        "id": 8,
+        "id": "8",
         "title": "Implement Order Detail page with tabs and analysis",
         "description": "Create the Order Detail page with tabs for overview, analysis, full text, citations, and quotes, providing in-depth order information.",
         "details": "In Pages/OrderDetail.elm, define the model with order data and active tab. Fetch order details via API. Implement tab switching and render content for each tab, including strategic implications and key quotes. Use QuoteCard for copyable quotes.",
@@ -1157,11 +1209,11 @@
         },
         "priority": "medium",
         "dependencies": [
-          3,
-          4,
-          5
+          "3",
+          "4",
+          "5"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1174,7 +1226,8 @@
             ],
             "details": "In Pages/OrderDetail.elm, add a Msg type for tab switching, update the update function to handle tab changes, and ensure the view reflects the active tab. Use Elm's Html.Events for click handlers on tab buttons.",
             "status": "pending",
-            "testStrategy": "Manually switch between tabs and verify that the active tab state updates correctly, and the UI highlights the selected tab."
+            "testStrategy": "Manually switch between tabs and verify that the active tab state updates correctly, and the UI highlights the selected tab.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1187,12 +1240,17 @@
             ],
             "details": "In the view function of Pages/OrderDetail.elm, create conditional rendering based on the active tab. For quotes tab, integrate QuoteCard component. Ensure data from API fetch is used to populate each tab's content, handling loading and error states.",
             "status": "pending",
-            "testStrategy": "Load the Order Detail page, switch to each tab, and verify that appropriate content renders, including quote copying functionality and proper data display."
+            "testStrategy": "Load the Order Detail page, switch to each tab, and verify that appropriate content renders, including quote copying functionality and proper data display.",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 7,
+        "recommendedSubtasks": 2,
+        "expansionPrompt": "Expand into subtasks for implementing tab switching logic and rendering content for each tab (overview, analysis, full text, citations, quotes).",
+        "updatedAt": "2025-11-14T16:50:07.403Z"
       },
       {
-        "id": 9,
+        "id": "9",
         "title": "Apply styling and ensure responsive design",
         "description": "Integrate Tailwind CSS for styling all components and pages, ensuring the UI matches the professional, Westlaw-style design and is responsive.",
         "details": "Add Tailwind CSS via CDN as specified. Apply the color palette, typography, and component styles from the PRD. Ensure layouts are responsive for mobile and desktop. Focus on accessibility with semantic HTML and ARIA labels.",
@@ -1208,13 +1266,13 @@
         },
         "priority": "medium",
         "dependencies": [
-          4,
-          5,
-          6,
-          7,
-          8
+          "4",
+          "5",
+          "6",
+          "7",
+          "8"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1223,12 +1281,17 @@
             "dependencies": [],
             "details": "Start by adding the Tailwind CSS CDN link to the HTML head in index.html. Then, systematically apply Tailwind classes to each component in the Components/ directory (e.g., Layout, SearchBar, OrderCard, etc.) and pages in Pages/ directory (Dashboard, Search, OrderDetail, NotFound). Use the PRD's design system for colors, fonts, spacing, and layouts. Ensure all elements use semantic HTML tags and add ARIA attributes where necessary for screen readers. Iterate on styling to match the professional look, focusing on consistency across the app.",
             "status": "pending",
-            "testStrategy": "Test on various screen sizes using browser dev tools to verify responsive behavior. Compare visual elements against PRD screenshots for color, typography, and layout accuracy. Run Lighthouse accessibility audit to confirm WCAG 2.1 AA compliance."
+            "testStrategy": "Test on various screen sizes using browser dev tools to verify responsive behavior. Compare visual elements against PRD screenshots for color, typography, and layout accuracy. Run Lighthouse accessibility audit to confirm WCAG 2.1 AA compliance.",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 6,
+        "recommendedSubtasks": 1,
+        "expansionPrompt": "Break into subtasks for applying Tailwind styles to components/pages and ensuring responsive layouts across devices.",
+        "updatedAt": "2025-11-14T16:50:07.918Z"
       },
       {
-        "id": 10,
+        "id": "10",
         "title": "Add testing, performance optimization, and final polish",
         "description": "Implement unit tests for key modules, optimize for performance, and ensure the application meets success criteria like sub-second loads and zero console errors.",
         "details": "Set up elm-test and write tests for API decoders, component logic, and routing. Implement caching for API responses and debouncing for search. Optimize bundle size and lazy loading. Add final touches for professional feel.",
@@ -1243,17 +1306,17 @@
         },
         "priority": "low",
         "dependencies": [
-          1,
-          2,
-          3,
-          4,
-          5,
-          6,
-          7,
-          8,
-          9
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6",
+          "7",
+          "8",
+          "9"
         ],
-        "status": "pending",
+        "status": "done",
         "subtasks": [
           {
             "id": 1,
@@ -1262,7 +1325,8 @@
             "dependencies": [],
             "details": "Install elm-test via npm or elm package manager. Create test files for Api.elm decoders, component update/view logic in pages like Dashboard and Search, and routing in Main.elm. Cover success and error cases, including mock HTTP responses for API tests. Run tests to verify all pass before proceeding.",
             "status": "pending",
-            "testStrategy": "Execute elm-test suite and ensure 100% pass rate; manually verify test coverage for critical paths."
+            "testStrategy": "Execute elm-test suite and ensure 100% pass rate; manually verify test coverage for critical paths.",
+            "parentId": "undefined"
           },
           {
             "id": 2,
@@ -1273,7 +1337,8 @@
             ],
             "details": "In Api.elm, implement response caching using Elm's Task or custom logic to store and reuse API results. Add debouncing to search inputs in Dashboard and Search pages using timers or libraries like elm-debounce. Optimize bundle size by enabling lazy loading for pages and minimizing unused code. Measure load times to ensure sub-second performance.",
             "status": "pending",
-            "testStrategy": "Use browser dev tools to measure page load times under 1 second; test search debouncing by rapid typing and verify delayed API calls; check cache hits via console logs."
+            "testStrategy": "Use browser dev tools to measure page load times under 1 second; test search debouncing by rapid typing and verify delayed API calls; check cache hits via console logs.",
+            "parentId": "undefined"
           },
           {
             "id": 3,
@@ -1285,15 +1350,24 @@
             ],
             "details": "Review the entire application for console errors in browser dev tools and fix them. Enhance UI polish with consistent styling, better error messages, and accessibility features like ARIA labels. Conduct end-to-end testing for user flows such as dashboard loading, searching, and navigating to order details. Ensure all success criteria are met, including professional appearance and smooth interactions.",
             "status": "pending",
-            "testStrategy": "Manually test full user journeys in the browser; use dev tools to confirm zero console errors; perform accessibility audits with tools like WAVE or Lighthouse."
+            "testStrategy": "Manually test full user journeys in the browser; use dev tools to confirm zero console errors; perform accessibility audits with tools like WAVE or Lighthouse.",
+            "parentId": "undefined"
           }
-        ]
+        ],
+        "complexity": 8,
+        "recommendedSubtasks": 3,
+        "expansionPrompt": "Expand into subtasks for setting up and writing unit tests, implementing performance optimizations (caching, debouncing), and adding final polish touches.",
+        "updatedAt": "2025-11-14T16:50:08.444Z"
       }
     ],
     "metadata": {
-      "created": "2025-11-14T15:42:51.616Z",
-      "updated": "2025-11-14T16:30:00.000Z",
-      "description": "Tasks for frontend context - Updated with PRD line references"
+      "version": "1.0.0",
+      "lastModified": "2025-11-14T16:50:08.445Z",
+      "taskCount": 10,
+      "completedCount": 10,
+      "tags": [
+        "frontend"
+      ]
     }
   }
 }
